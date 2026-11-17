@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(EntisGLSLauncher LANGUAGES C CXX)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    enable_language(OBJCXX)
+endif()
 option(AETHER_ENTISGLS_EMBEDDED "Build engine libraries for an Aether host" OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)

@@ -78,6 +78,11 @@ target_link_libraries(gls4_sdl PUBLIC study_sdl_platform entis_game_files)
 if(ANDROID)
     target_link_libraries(gls4_sdl PUBLIC GLESv1_CM GLESv2 GLESv3 log)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    enable_language(OBJCXX)
+    target_sources(gls4_sdl PRIVATE native/platform/ios/ios_gl_context.mm
+        native/platform/ios/window_orientation.mm)
+    set_source_files_properties(native/platform/ios/ios_gl_context.mm
+        native/platform/ios/window_orientation.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     find_library(STUDY_OPENGLES_FRAMEWORK OpenGLES REQUIRED)
     target_link_libraries(gls4_sdl PUBLIC "${STUDY_OPENGLES_FRAMEWORK}")
 elseif(APPLE)

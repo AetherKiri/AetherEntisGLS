@@ -162,8 +162,19 @@ def main():
         # of those two null pointers must not enter the link-click handler.
         return s.replace(old, '\tif ( pHitLink != NULL && m_pFocusLink == pHitLink )')
     source_copy('Source/common/sakuraglx/sprite/sglx_sprite_message.cpp', message_link_input)
-    source_copy('Source/common/glscs/glscs_sakura2_jit_native_compiler.cpp', lambda s:
-        s.replace('sizePageUnit = PAGE_SIZE', 'return nullptr'))
+    def native_compiler(s):
+        # Keep executable-memory allocation disabled in the portable runtime.
+        # The SDK still links its cache utility on ARM64; compiler-rt's
+        # __clear_cache is absent from device iOS, unlike the simulator.
+        s = s.replace('sizePageUnit = PAGE_SIZE', 'return nullptr')
+        old = '__clear_cache( (void*) start, (void*) end ) ;'
+        if s.count(old) != 1:
+            raise ValueError('SDK instruction-cache helper changed')
+        return ('#if defined(__APPLE__)\n#include <libkern/OSCacheControl.h>\n#endif\n' +
+                s.replace(old, '#if defined(__APPLE__)\n'
+                              '\tsys_icache_invalidate((void*)start, size_t(end - start));\n'
+                              '#else\n\t' + old + '\n#endif'))
+    source_copy('Source/common/glscs/glscs_sakura2_jit_native_compiler.cpp', native_compiler)
     def std_application(s):
         s = '#include <SDL3/SDL.h>\n#include <string>\n' + s
         s = s.replace('#error\tno implement SGLStdApplication::GetUserUniqueId',

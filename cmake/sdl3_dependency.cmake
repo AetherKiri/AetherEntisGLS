@@ -56,6 +56,16 @@ if(AETHER_ENTISGLS_EMBEDDED)
                 target_compile_definitions(SDL3-static PRIVATE "${class_name}=AetherEntis_${class_name}")
             endforeach()
         endif()
+        if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+            get_target_property(embedded_sdl_sources SDL3-static SOURCES)
+            # Replace only the embedded offscreen driver. The standalone
+            # launcher continues to use SDL's regular UIKit presentation.
+            list(FILTER embedded_sdl_sources EXCLUDE REGEX "(^|/)SDL_offscreenvideo\\.c$")
+            list(APPEND embedded_sdl_sources "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../native/platform/ios/embedded_sdl_video.mm")
+            set_target_properties(SDL3-static PROPERTIES SOURCES "${embedded_sdl_sources}")
+            set_source_files_properties("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../native/platform/ios/embedded_sdl_video.mm"
+                PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+        endif()
     endfunction()
     entis_build_embedded_sdl()
     return()
