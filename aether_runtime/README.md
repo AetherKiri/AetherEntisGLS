@@ -17,7 +17,8 @@ The provider embeds the traditional Cotopha interpreter, NOA storage, SDK image
 and audio codecs, text and fonts, sprites, saved object graphs, and motion/PSB
 support. It executes scripts on a worker and presents RGBA frames from an
 embedded SDL/OpenGL context on the host main thread. It restores the host CGL
-context on macOS. Hidden SDL symbols and distinct Objective-C class names allow
+context on macOS and the host EAGL context (including a Metal host's null binding)
+on iOS. Hidden SDL symbols and distinct Objective-C class names allow
 other runtimes to load their own SDL without collisions.
 
 The host supplies input in game coordinates and handles presentation, cursor,
@@ -68,6 +69,29 @@ Inside Aether, the usual desktop build enables this provider independently of
 or set `AETHERKIRI_ENTISGLS_DIR` to another checkout while developing. The desktop
 packaging manifest includes the provider's shared library.
 
+### iOS embedding
+
+The provider builds as `AetherEntisGLS.framework` for device ARM64 and the iOS
+simulator. The framework exports only `AetherEntisGLSProvider`; its SDL3, TJS and
+SDK objects must **not** be merged into the host's static archive. Aether's iOS
+export stages this framework from the configured build manifest and includes it
+as a GDExtension dependency for linking, embedding and signing.
+
+The embedded iOS backend uses a private OpenGL ES 3 EAGL framebuffer. It creates
+no UIKit window or view: Aether retains presentation, safe areas, orientation and
+touch/IME handling. The original UIKit backend remains available to the
+standalone launcher. Both backends resolve the nonzero EAGL drawable framebuffer
+for rendering and pixel readback, and share textures with E-mote contexts.
+The portable interpreter is used without executable-memory allocation.
+
+For an iOS-configured provider build, enable
+`AETHERKIRI_BUILD_ENTISGLS_IOS_TESTS=ON` and build
+`aether_entisgls_ios_host_test`. Install the resulting app with `simctl` and launch
+`org.aetherkiri.entisgls.graphics-test`. It checks actual pixel colors, resize,
+shared contexts, audio pause/resume, three start/stop cycles, and preservation of
+the host UIKit hierarchy. The app writes `Documents/result.json`; no game assets
+or signing exceptions are required for the simulator test.
+
 For a standalone build of this public package:
 
 ```sh
@@ -87,7 +111,7 @@ With Homebrew's `lua@5.4`, use `-DCMAKE_PREFIX_PATH="$(brew --prefix);$(brew --p
 `-DTJS_BISON="$(brew --prefix bison)/bin/bison"`. Aether's vcpkg toolchain and
 installed packages can also be supplied normally.
 
-The 24 CTest groups need no commercial game. They cover provider lifetimes,
+The CTest groups need no commercial game. They cover provider lifetimes,
 discovery and configuration decoding, text/font restoration, input, sprite
 hotspots and image replacement, camera invalidation, pause and audio, object
 graph serialization, bounded scene records, save directories, atomic save failure
@@ -107,9 +131,12 @@ and are not part of this integration package.
 ## Scope
 
 The provider targets traditional Cotopha CSX. It does not claim compatibility
-with arbitrary Loquaty programs or every title using Entis codecs. Desktop
-integration is enabled; mobile and Web hosts need separate presentation and
-lifecycle work. PRIMAL×HEARTS supplied the actual-game regression cases for
+with arbitrary Loquaty programs or every title using Entis codecs. Desktop and
+mobile integrations provide their own presentation and lifecycle; Web embedding
+is not supported. iOS validation covers ARM64 device compilation and simulator
+provider-host gameplay, including Chinese text, progression and save/reload.
+It does not establish physical-device or complete Aether IPA validation.
+PRIMAL×HEARTS supplied the actual-game regression cases for
 progression, save/load, lower-menu hover, START camera animation and save-screen
 text replacement. These checks do not establish that every route or Cotopha
 title is compatible. Auxiliary windows and full opening/ending movie playback

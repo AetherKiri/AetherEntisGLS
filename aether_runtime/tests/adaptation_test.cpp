@@ -150,6 +150,35 @@ INT64 invoke(ECSContext& context,ECSSprite& sprite,const wchar_t* name,std::init
 ECSArray* curve(double x0,double x1,double z) {
     auto* values=new ECSArray;for(int i=0;i<4;++i)values->m_varArray.Add(vector(x0+(x1-x0)*i/3.,0,z));return values;
 }
+void messageGlyphs() {
+    using namespace SakuraGL;
+    struct Skin: SGLSkinManager {
+        mutable SSystem::SXMLDocument style;
+        Skin(){style.SetTag(L"message");}
+        SSystem::SXMLDocument* GetStyleAs(const wchar_t*)const override{return &style;}
+    };
+    auto skin=std::make_shared<Skin>();
+    auto* image=new SGLImage;
+    SGLImageInfo info;info.width=8;info.height=8;info.depth=32;info.format=formatImageARGB;
+    require(!image->CreateBuffer(info)&&!image->FillImage(SGLPalette(0x80ffffffu)),"inline image fixture");
+    require(!skin->AddResourceAs(L"heart",image),"inline image resource");
+    ECSMessageSprite message;
+    require(!message.CreateMessage(200,80),"message canvas");
+    require(!message.AttachMessageStyle(skin,L"default"),"message style");
+    size_t consumed=0;
+    const wchar_t* absent=L"\\x;optional:\\xc;:\\x;missing:";
+    require(!message.OutputMessage(absent,consumed)&&consumed==std::wcslen(absent),"missing optional glyphs are consumed without an exception");
+    require(message.NativeMessage().GetMessageCharacterCount()==0,"missing glyphs do not add invisible waits");
+    require(!message.OutputMessage(L"\\x;heart:",consumed)&&consumed==9,"plain inline image");
+    auto* plain=message.NativeMessage().GetMessageCharacterAt(0);
+    require(plain&&plain->m_pImage&&plain->m_sizeChar.w==8,"glyph occupies image width");
+    require(!message.OutputMessage(L"\\c;ff0000:\\xc;heart:",consumed),"tinted inline image");
+    auto* tinted=message.NativeMessage().GetMessageCharacterAt(1);
+    SGLPalette pixel;
+    require(tinted&&tinted->m_pImage&&!tinted->m_pImage->GetPixelRGBA(pixel,2,2),"tinted glyph pixels");
+    require(pixel.argb.Red==255&&pixel.argb.Green==0&&pixel.argb.Blue==0&&pixel.argb.Alpha==128,"tint retains alpha and uses current text color");
+    require(!message.OutputMessage(L"after",consumed)&&consumed==5,"dialogue continues after an inline glyph");
+}
 void imageCache() {
     using namespace SakuraGL;
     ECSContext context;
@@ -922,7 +951,7 @@ int main(int argc,char** argv) {
         study::platform::sdl::SystemPaths paths;paths.assetsRoot=paths.storageRoot=paths.localRoot=paths.gameRoot=root.string();
         require(study::platform::sdl::ConfigureSystemPaths(paths),"fixture paths");SakuraGL::Initialize();ECotophaScript::Initialize(0);ECotophaScript::MultithreadReference(true);initialized=true;
         const std::string mode=argv[1];
-        if(mode=="legacy-bshf")legacyBshf(root);else if(mode=="witch-sdk")witchSdk();else if(mode=="game-hooks")gameHooks(root);else if(mode=="encoding")encoding();else if(mode=="input")input();else if(mode=="edit-options")editOptions();else if(mode=="button-status")buttonStatus();else if(mode=="graphics")graphics();else if(mode=="image-cache")imageCache();else if(mode=="camera-cache")cameraCache();else if(mode=="control")control();else if(mode=="audio")audio();else if(mode=="fonts")fonts(root);else if(mode=="serialization")serialization();else throw std::runtime_error("unknown test mode");
+        if(mode=="message-glyphs")messageGlyphs();else if(mode=="legacy-bshf")legacyBshf(root);else if(mode=="witch-sdk")witchSdk();else if(mode=="game-hooks")gameHooks(root);else if(mode=="encoding")encoding();else if(mode=="input")input();else if(mode=="edit-options")editOptions();else if(mode=="button-status")buttonStatus();else if(mode=="graphics")graphics();else if(mode=="image-cache")imageCache();else if(mode=="camera-cache")cameraCache();else if(mode=="control")control();else if(mode=="audio")audio();else if(mode=="fonts")fonts(root);else if(mode=="serialization")serialization();else throw std::runtime_error("unknown test mode");
         std::printf("EntisGLS %s PASS (%u checks)\n",argv[1],checks);
     }catch(const std::exception& error){std::fprintf(stderr,"EntisGLS adaptation FAIL: %s\n",error.what());result=1;}
     study::platform::sdl::ResumeRuntimeForShutdown();

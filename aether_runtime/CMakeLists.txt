@@ -7,11 +7,20 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     endif()
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    enable_language(OBJCXX)
+endif()
+
 if(NOT EXISTS "${AETHER_ENTISGLS_HOST_ROOT}/abi/include/engine_api.h")
     message(FATAL_ERROR "Set AETHER_ENTISGLS_HOST_ROOT to an Aether checkout containing abi/include")
 endif()
 
-option(AETHERKIRI_BUILD_ENTISGLS_TESTS "Build asset-free EntisGLS regression tests" ON)
+set(_entis_default_tests ON)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(_entis_default_tests OFF)
+endif()
+option(AETHERKIRI_BUILD_ENTISGLS_TESTS "Build asset-free EntisGLS regression tests" ${_entis_default_tests})
+unset(_entis_default_tests)
 if(NOT TARGET aether_game_hooks)
     add_subdirectory("${AETHER_ENTISGLS_HOST_ROOT}/bridge/game_hooks" "${CMAKE_CURRENT_BINARY_DIR}/game_hooks")
 endif()
@@ -44,7 +53,7 @@ add_library(aether_entisgls_runtime SHARED src/provider.cpp src/input.cpp src/fo
     "${entis_vendor}/native/platform/sdl/opentype_font.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/sdk/legacy_heap_sdk/glscs_sakura2_obj_heap.cpp")
 target_compile_features(aether_entisgls_runtime PRIVATE cxx_std_17)
-target_compile_definitions(aether_entisgls_runtime PRIVATE AETHER_ENTISGLS_EXPORTS=1)
+target_compile_definitions(aether_entisgls_runtime PRIVATE AETHER_ENTISGLS_EXPORTS=1 SDL_MAIN_HANDLED=1)
 target_include_directories(aether_entisgls_runtime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${AETHER_ENTISGLS_HOST_ROOT}/abi/include")
 target_link_libraries(aether_entisgls_runtime PRIVATE legacy_objects legacy_foundation gls4_sdl
@@ -59,9 +68,40 @@ set_target_properties(aether_entisgls_runtime PROPERTIES CXX_VISIBILITY_PRESET h
 if(APPLE)
     target_link_options(aether_entisgls_runtime PRIVATE "LINKER:-exported_symbol,_AetherEntisGLSProvider")
     set_target_properties(aether_entisgls_runtime PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE INSTALL_RPATH "@loader_path")
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        # Keep SDL3/TJS/SDK globals in their own image, just like desktop and
+        # Android. Merging these objects into Godot's archive aliases its SDL
+        # and the other engines' TJS symbols. iOS embeds a signed framework.
+        set(AETHER_ENTISGLS_IOS_PLATFORM iPhoneOS)
+        if(CMAKE_OSX_SYSROOT MATCHES "[Ss]imulator")
+            set(AETHER_ENTISGLS_IOS_PLATFORM iPhoneSimulator)
+        endif()
+        set_target_properties(aether_entisgls_runtime PROPERTIES
+            FRAMEWORK TRUE
+            OUTPUT_NAME AetherEntisGLS
+            MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/ios_framework.plist.in"
+            MACOSX_FRAMEWORK_IDENTIFIER org.aetherkiri.entisgls
+            MACOSX_FRAMEWORK_SHORT_VERSION_STRING 1.0
+            MACOSX_FRAMEWORK_BUNDLE_VERSION 1
+            INSTALL_NAME_DIR "@rpath"
+            BUILD_WITH_INSTALL_NAME_DIR TRUE)
+    endif()
 elseif(UNIX)
     target_link_options(aether_entisgls_runtime PRIVATE "LINKER:--exclude-libs,ALL" "LINKER:-z,defs")
     set_target_properties(aether_entisgls_runtime PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE INSTALL_RPATH "$ORIGIN")
+endif()
+
+option(AETHERKIRI_BUILD_ENTISGLS_IOS_TESTS "Build the UIKit offscreen integration test app" OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS" AND AETHERKIRI_BUILD_ENTISGLS_IOS_TESTS)
+    add_executable(aether_entisgls_ios_host_test MACOSX_BUNDLE tests/ios_host_test.mm
+        "${entis_vendor}/native/platform/ios/ios_gl_context.mm")
+    target_include_directories(aether_entisgls_ios_host_test PRIVATE "${entis_vendor}/native")
+    target_compile_options(aether_entisgls_ios_host_test PRIVATE -fobjc-arc)
+    target_link_libraries(aether_entisgls_ios_host_test PRIVATE SDL3::SDL3
+        "-framework UIKit" "-framework OpenGLES")
+    set_target_properties(aether_entisgls_ios_host_test PROPERTIES
+        OBJCXX_STANDARD 17
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/tests/ios_host_test.plist.in")
 endif()
 
 if(AETHERKIRI_BUILD_ENTISGLS_TESTS)
@@ -90,7 +130,7 @@ if(AETHERKIRI_BUILD_ENTISGLS_TESTS)
     target_compile_features(aether_entisgls_adaptation_test PRIVATE cxx_std_17)
     target_include_directories(aether_entisgls_adaptation_test PRIVATE src "${AETHER_ENTISGLS_HOST_ROOT}/abi/include")
     target_link_libraries(aether_entisgls_adaptation_test PRIVATE legacy_objects legacy_foundation gls4_sdl motion_apk_runtime freetype aether_game_hooks nlohmann_json::nlohmann_json)
-    foreach(mode encoding input button-status edit-options graphics image-cache camera-cache control audio fonts serialization game-hooks witch-sdk legacy-bshf)
+    foreach(mode message-glyphs encoding input button-status edit-options graphics image-cache camera-cache control audio fonts serialization game-hooks witch-sdk legacy-bshf)
         add_test(NAME entisgls-${mode} COMMAND aether_entisgls_adaptation_test ${mode} "${CMAKE_CURRENT_BINARY_DIR}/adaptation-${mode}")
     endforeach()
     add_test(NAME entisgls-configuration COMMAND launcher_config_test "${CMAKE_CURRENT_BINARY_DIR}/config-fixtures")

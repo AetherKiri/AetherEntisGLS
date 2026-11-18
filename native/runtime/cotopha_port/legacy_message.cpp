@@ -174,6 +174,23 @@ public:
         PostUpdate();
         return static_cast<ESLError>(result);
     }
+    ESLError AppendImage(SGLImageObject *image,bool tinted) {
+        if(!image)return eslErrSuccess;
+        if(tinted) {
+            SGLImage colored;
+            if(const auto error=colored.CreateCloneImage(*image))return static_cast<ESLError>(error);
+            const auto size=colored.GetImageSize();
+            const auto color=EffectiveDecoration().rgbaBody;
+            for(int y=0;y<size.h;++y)for(int x=0;x<size.w;++x) {
+                SGLPalette pixel;
+                if(const auto error=colored.GetPixelRGBA(pixel,x,y))return static_cast<ESLError>(error);
+                pixel.argb.Red=color.argb.Red;pixel.argb.Green=color.argb.Green;pixel.argb.Blue=color.argb.Blue;
+                if(const auto error=colored.SetPixelRGBA(x,y,pixel))return static_cast<ESLError>(error);
+            }
+            AddMessageImage(&colored);
+        } else AddMessageImage(image);
+        PostUpdate();return eslErrSuccess;
+    }
     void Border(bool enabled) { fontBorder_=enabled; }
     bool FontBordering() const { return fontBorder_; }
     bool fontBorder_=false;
@@ -519,13 +536,23 @@ ESLError ECSMessageSprite::OutputMessage(const wchar_t *message,size_t &consumed
             auto action=Bridge().GetViewActionStyle();action.msecPerChar=speed;action.msecFade=fade;
             Bridge().SetViewActionStyle(action);
         } else if(code==L'x') {
-            if(at<input.size() && input[at]==L'c')
-                return ESLErrorMsg("Tinted MessageSprite extension glyphs have not been ported");
+            const bool tinted=at<input.size()&&input[at]==L'c';
+            if(tinted)++at;
             if(at>=input.size() || input[at++]!=L';') return ESLErrorMsg("Invalid MessageSprite extension glyph");
             std::wstring id;
             if(!enclosed(at,L':',id)) return ESLErrorMsg("Unterminated MessageSprite extension glyph");
-            if(!skin_ || !skin_->GetImageAs(id.c_str())) return ESLErrorMsg("MessageSprite extension glyph was not found");
-            status=Bridge().AppendElement(L"xfont",L"",L"id",id);
+            SGLImageObject* image=nullptr;
+            // Legacy ResourceManager exposes mutable script variables. A game
+            // can replace/add its inline images after loading the skin.
+            if(auto* manager=ESLTypeCast<ECSResourceManager>(styleManager_.m_pRef)) {
+                int index=0;
+                if(!manager->GetVariableIndex(index,id.c_str()))
+                    if(auto* resource=ESLTypeCast<ECSResource>(ECSObject::GetEntity(manager->GetVariableAt(index))))image=resource->GetImage();
+            }
+            if(!image&&skin_)image=skin_->GetImageAs(id.c_str());
+            // Native OutputMessage consumes absent optional glyphs without
+            // throwing or stalling the interpreter (including an empty id).
+            status=Bridge().AppendImage(image,tinted);
         } else return ESLErrorMsg("Unknown MessageSprite formatting escape");
         if(status==eslErrAbort) {
             Bridge().Rollback(checkpoint);consumed=commandStart;

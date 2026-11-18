@@ -11,6 +11,7 @@
 #include "platform/sdl/system.h"
 #include "platform/sdl/runtime_control.h"
 #include "platform/sdl/window.h"
+#include "platform/sdl/gl_drawable.h"
 #include "platform/sdl/sdl_sound_player.h"
 #include "platform/sdl/sdk_image_codec.h"
 #include "platform/sdl/sdl_pcm_stream.h"
@@ -20,6 +21,8 @@
 #include "runtime/witch/player.h"
 #include <sakuraglx/sprite/sglx_sprite_message.h>
 #include <SDL3/SDL_main.h>
+#include "tjs.h"
+#include "tjsError.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <atomic>
@@ -30,7 +33,9 @@
 #include <stdexcept>
 #include <thread>
 #include <vector>
-#if defined(__APPLE__)
+#if defined(SDL_PLATFORM_IOS)
+#include "platform/ios/ios_gl_context.h"
+#elif defined(__APPLE__)
 #include <OpenGL/OpenGL.h>
 #elif defined(__ANDROID__)
 #include <EGL/egl.h>
@@ -47,7 +52,16 @@ std::atomic<void*> activeSession{nullptr};
 // SDL owns an offscreen context; Godot may own a different OpenGL context on
 // the same thread. Clear SDL's TLS binding before restoring the host context.
 struct HostGraphicsScope {
-#if defined(__APPLE__)
+#if defined(SDL_PLATFORM_IOS)
+    void* previous = platform::RetainIOSCurrentGLContext();
+    ~HostGraphicsScope() {
+        if (!platform::IsIOSGLContextCurrent(previous)) {
+            if (SDL_GL_GetCurrentContext()) SDL_GL_MakeCurrent(SDL_GL_GetCurrentWindow(), nullptr);
+            platform::MakeIOSGLContextCurrent(previous);
+        }
+        platform::ReleaseIOSGLContextReference(previous);
+    }
+#elif defined(__APPLE__)
     CGLContextObj previous = CGLGetCurrentContext();
     ~HostGraphicsScope() {
         if (CGLGetCurrentContext() != previous) {
@@ -98,7 +112,8 @@ struct Player {
         GLint framebuffer = 0, alignment = 0;
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, &framebuffer);
         glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glBindFramebuffer(GL_FRAMEBUFFER, platform::ResolveWindowFramebuffer(0));
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, next.data());
         const auto glError = glGetError();
         glPixelStorei(GL_PACK_ALIGNMENT, alignment); glBindFramebuffer(GL_FRAMEBUFFER, GLuint(framebuffer));
@@ -122,6 +137,10 @@ struct Player {
         // audio backends require an SDLActivity that this host does not have.
         SDL_SetHintWithPriority(SDL_HINT_VIDEO_DRIVER, "offscreen", SDL_HINT_OVERRIDE);
         SDL_SetHintWithPriority(SDL_HINT_AUDIO_DRIVER, "openslES", SDL_HINT_OVERRIDE);
+#elif defined(SDL_PLATFORM_IOS)
+        // Aether owns UIKit, orientation and touch input. Use a private EAGL
+        // framebuffer without creating an SDL UIWindow or changing keyWindow.
+        SDL_SetHintWithPriority(SDL_HINT_VIDEO_DRIVER, "offscreen", SDL_HINT_OVERRIDE);
 #endif
         if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO)) throw std::runtime_error(SDL_GetError());
         video = true;
@@ -204,6 +223,7 @@ template<class F> engine_result_t guard(void* opaque, F work) {
     auto& p = cast(opaque);
     HostGraphicsScope graphics;
     try { work(p); return ENGINE_RESULT_OK; }
+    catch (const eTJSError& e) { p.error = e.GetMessage().AsStdString(); p.log(ENGINE_RUNTIME_LOG_ERROR, p.error); return ENGINE_RESULT_INTERNAL_ERROR; }
     catch (const std::exception& e) { p.error = e.what(); p.log(ENGINE_RUNTIME_LOG_ERROR, p.error); return ENGINE_RESULT_INTERNAL_ERROR; }
     catch (...) { p.error = "Unknown EntisGLS failure"; return ENGINE_RESULT_INTERNAL_ERROR; }
 }
