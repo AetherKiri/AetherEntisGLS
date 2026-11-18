@@ -21,6 +21,8 @@
 #include "runtime/witch/player.h"
 #include <sakuraglx/sprite/sglx_sprite_message.h>
 #include <SDL3/SDL_main.h>
+#include "tjs.h"
+#include "tjsError.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <atomic>
@@ -221,6 +223,7 @@ template<class F> engine_result_t guard(void* opaque, F work) {
     auto& p = cast(opaque);
     HostGraphicsScope graphics;
     try { work(p); return ENGINE_RESULT_OK; }
+    catch (const eTJSError& e) { p.error = e.GetMessage().AsStdString(); p.log(ENGINE_RUNTIME_LOG_ERROR, p.error); return ENGINE_RESULT_INTERNAL_ERROR; }
     catch (const std::exception& e) { p.error = e.what(); p.log(ENGINE_RUNTIME_LOG_ERROR, p.error); return ENGINE_RESULT_INTERNAL_ERROR; }
     catch (...) { p.error = "Unknown EntisGLS failure"; return ENGINE_RESULT_INTERNAL_ERROR; }
 }
