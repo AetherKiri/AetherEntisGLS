@@ -78,10 +78,6 @@ Route Resolve(const fs::path& path) {
 [[noreturn]] void IOError(const fs::path& path, const char* action) {
     throw std::runtime_error(std::string(action) + ": " + path.u8string() + ": " + std::strerror(errno));
 }
-struct CloseFile {
-    void operator()(std::FILE* file) const noexcept { std::fclose(file); }
-};
-using File = std::unique_ptr<std::FILE, CloseFile>;
 }
 
 void SetBackend(const std::string& root, std::shared_ptr<Backend> backend) {
