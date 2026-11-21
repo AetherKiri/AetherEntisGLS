@@ -193,7 +193,17 @@ for component in ("ESL", "GLS3", "erisalib", "EGL"):
     OutputDebugString("GLS3 x86 JIT disabled; using the portable interpreter");
 }
 \n''' + text[end:]
+        if source.name == "eslstring.cpp":
+            text = re.sub(r'(WideCharToMultiByte\s*\(\s*ptrString,\s*(?:nLength|-1),\s*NULL,\s*)NULL', r'\g<1>0', text)
+        if source.name == "glscs_compiler.cpp":
+            text = re.sub(r'(CompileExpression\( [^\n,]+, (?:cssExpr|cssLine), 0, )NULL( \))', r'\g<1>0\2', text)
+            old = 'opinf.uoptUnary < csctMax'
+            if text.count(old) != 1:
+                raise ValueError('SDK unary operator bounds check changed')
+            text = text.replace(old, 'opinf.uoptUnary < csuotMax')
         if source.name == "glscs_rosetta.cpp":
+            for index in ('nIndex', 'nFuncIndex'):
+                text = text.replace(f'(void*) {index}', f'reinterpret_cast<void *>(static_cast<intptr_t>({index}))')
             text = text.replace("#include <glscs_rosetta.h>", "#include <rosetta/rosetta.h>\n#include <glscs_rosetta.h>")
             text = text.replace("return\t!m_pObject->OperateInteger( number ) ;", "INT64 value = 0;\n const bool success = !m_pObject->OperateInteger(value);\n number = value;\n return success;")
             text = text.replace("(int) pInstance", "static_cast<int>(reinterpret_cast<intptr_t>(pInstance))")
