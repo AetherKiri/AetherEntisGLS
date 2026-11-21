@@ -221,6 +221,18 @@ SDL_free(variables);
         'sha256': hashlib.sha256(loquaty_file.read_bytes()).hexdigest(),
         'output': 'loquaty/loquaty_file.cpp'})
 
+    compiler_name = 'loquaty_compiler_expression.cpp'
+    compiler_source = ROOT/'vendor/official-loquaty/Loquaty/source'/compiler_name
+    compiler_text = compiler_source.read_text(encoding='utf-8-sig')
+    # A primitive array has no structure class to name in this diagnostic.
+    primitive_branch = compiler_text.index('if ( typeNewElement.IsPrimitive() )')
+    compiler_text = compiler_text[:primitive_branch] + replace_once(compiler_text[primitive_branch:],
+        'pStructClass->GetFullClassName().c_str()', 'typeNewElement.GetTypeName().c_str()')
+    write(out/'loquaty'/compiler_name, compiler_text)
+    records.append({'source': str(compiler_source.relative_to(ROOT)),
+        'sha256': hashlib.sha256(compiler_source.read_bytes()).hexdigest(),
+        'output': 'loquaty/' + compiler_name})
+
     for name, count in (('loquaty_cls_clock.cpp', 3), ('loquaty_date_time.cpp', 2)):
         clock_source = ROOT/'vendor/official-loquaty/Loquaty/source'/name
         clock_text = clock_source.read_text(encoding='utf-8-sig')
