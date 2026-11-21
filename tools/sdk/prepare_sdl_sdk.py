@@ -292,11 +292,36 @@ static int EntisTimespecGet(std::timespec* value) {
     if count != 14: raise ValueError('SDK custom shader initialization changed')
     generated[custom_shader] = text
 
+    # The normal buffer holds C++ objects. SArray uses raw allocation and
+    # byte-wise initialization, so use a container that constructs its elements.
+    render_header = out/'Include/opengl/sakuragl/sgl_opengl_render_context.h'
+    text = replace_once(generated[render_header],
+        'namespace\tSakuraGL', '#include <vector>\n\nnamespace\tSakuraGL')
+    generated[render_header] = replace_once(text,
+        'SSystem::SArray<S3DVector4>\tm_bufNormal ;', 'std::vector<S3DVector4>\tm_bufNormal ;')
+
     render_context = out/'Source/opengl/sakuragl/sgl_opengl_render_context.cpp'
     text = generated[render_context]
     for index in ('m_sviView', 'sviView'):
         text = replace_once(text, f'ESLAssert( ({index} >= 0) && ({index} < 2) ) ;',
             f'ESLAssert( ({index} == stereoViewRight) || ({index} == stereoViewLeft) ) ;')
+    for old, new in (
+        ('GetLength()', 'size()'),
+        ('SetLength( (countVertex + 0xFF) & ~0xFF )',
+         'resize( (countVertex + 0xFF) & ~0xFF, S3DVector4(0, 0, 0, 0) )'),
+        ('GetArray()', 'data()'),
+    ):
+        old, new = f'm_bufNormal.{old}', f'm_bufNormal.{new}'
+        if text.count(old) != 2: raise ValueError(f'SDK normal buffer access changed: {old}')
+        text = text.replace(old, new)
+    text, count = re.subn(r'^[\t ]*m_bufNormal\.FinishArray\(\) ;\n', '', text, flags=re.MULTILINE)
+    if count != 2: raise ValueError('SDK normal buffer release changed')
+    # The SDK accumulates normals into this array after clearing all four
+    # components. The default constructor does not clear x, y and z.
+    text = replace_once(text,
+        'eslFillMemory\n\t\t\t\t( pvBufNormal, 0, countVertex * sizeof(S3DVector4) ) ;',
+        'for (size_t i = 0; i < countVertex; ++i)\n'
+        '\t\t\t\tpvBufNormal[i] = S3DVector4(0, 0, 0, 0);')
     generated[render_context] = text
 
     producer = out/'Source/opengl/sakuragl/sgl_opengl_window_producer.cpp'
