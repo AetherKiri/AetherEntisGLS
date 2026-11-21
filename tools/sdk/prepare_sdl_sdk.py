@@ -58,6 +58,14 @@ def main():
     source_copy('Source/common/sakuragl/media/sgl_sound_player.cpp', lambda s:
         s.replace('#error no implement SGLSoundPlayer::Open',
                   '// SDL startup registers a real SGLSoundPlayerInterface creator.'))
+    def script_sound_player(s):
+        old = '#warning\tno implement SakuraGL::SoundPlayer'
+        return '#include "platform/sdl/sdl_sound_player.h"\n' + replace_once(
+            s, old, 'pPlayer = new SakuraGL::SGLSDLSoundPlayer ;')
+    source_copy('Source/common/glscs/glscs_sakura2_obj_sound.cpp', script_sound_player)
+    source_copy('Source/common/sakuragl/sgl3d/sgl_render_device.cpp', lambda s:
+        replace_once(s, 'eslFillMemory( &m_ssi, 0, sizeof(m_ssi) ) ;',
+                     'm_ssi = {};\n\tm_ssi.dimLocalSize = DimSize(0, 0, 0);'))
     source_copy('Source/common/sakuragl/media/sgl_sound_recorder.cpp', lambda s:
         s.replace('#error no implement SGLSoundRecorder::EnumerateDevices',
                   'if (pwNameBuf && nNameBufLength) pwNameBuf[0] = 0;')
@@ -91,7 +99,9 @@ def main():
         if s.count(old) != 1: raise ValueError('SDK stock font ownership block changed')
         # This branch already released QuickLock. Failed stock creation must
         # not fall through into the second unlock and a missing system backend.
-        return s.replace(old, old + '\n\t\t\treturn sglErrFailed;')
+        return s.replace(old, old + '\n\t\t\treturn sglErrFailed;').replace(
+            '#warning no implement font rasterizer',
+            '// SDL fonts are resolved through the registered stock above.')
     source_copy('Source/common/sakuragl/sgl2d/sgl_font.cpp', font)
     def fixed_pitch_lettering(s):
         # Fixed character advance changes width, not the glyph cell height.
@@ -275,6 +285,19 @@ static int EntisTimespecGet(std::timespec* value) {
             if src.suffix not in ('.h', '.hpp', '.cpp'): continue
             relative = src.relative_to(COTOPHA)
             source_copy(relative, graphics)
+
+    custom_shader = out/'Source/opengl/sakuragl/sgl_opengl_custom_shader.cpp'
+    text, count = re.subn(r'eslFillMemory\s*\( &source, 0, sizeof\(S3DRenderDevice::ShaderSourceInfo\) \) ;',
+        'source = {};\n\tsource.dimLocalSize = S3DRenderDevice::DimSize(0, 0, 0);', generated[custom_shader])
+    if count != 14: raise ValueError('SDK custom shader initialization changed')
+    generated[custom_shader] = text
+
+    render_context = out/'Source/opengl/sakuragl/sgl_opengl_render_context.cpp'
+    text = generated[render_context]
+    for index in ('m_sviView', 'sviView'):
+        text = replace_once(text, f'ESLAssert( ({index} >= 0) && ({index} < 2) ) ;',
+            f'ESLAssert( ({index} == stereoViewRight) || ({index} == stereoViewLeft) ) ;')
+    generated[render_context] = text
 
     producer = out/'Source/opengl/sakuragl/sgl_opengl_window_producer.cpp'
     text = generated[producer]
