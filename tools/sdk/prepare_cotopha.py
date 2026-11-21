@@ -84,6 +84,20 @@ for component in ("ESL", "GLS3", "erisalib", "EGL"):
             # ReplaceWords uses an undeclared _Obj as its map key type.
             text = text.replace("ETaggedElement<_Obj,_CObj>", "ETaggedElement<EString,_CObj>", 1)
             text = text.replace("ETaggedElement<_Obj,_CObj>", "ETaggedElement<EWideString,_CObj>", 1)
+            # AllocString reports allocation failure with a null buffer.
+            # Neither constructor can proceed with the copy in that case.
+            allocation = "AllocString( m_nLength + (m_nLength >> 1) + 1 ) ;"
+            split = text.index("~EGenString( void )")
+            constructors = text[:split]
+            assert constructors.count(allocation) == 2
+            text = ("#include <new>\n" + constructors.replace(
+                allocation, allocation + "\n\t\t\t\tif ( m_pszString == NULL ) throw std::bad_alloc() ;"
+            ) + text[split:])
+        if source.name == "glscs_compiler.cpp":
+            text = text.replace("(matchResult == ECSTypeInfo::typeNoMatch)\n", "matchResult == ECSTypeInfo::typeNoMatch\n")
+            text = text.replace("if ( /*(csomClass == csomGlobal) ||*/ (csomClass == csomThis) )", "if ( csomClass == csomThis )")
+        if source.name == "glscsobj_object.cpp":
+            text = text.replace("(m_vtType == csvtReference)\n", "m_vtType == csvtReference\n")
         if source.name == "glsscript.h":
             text = text.replace("#include <ctscriptplugin.h>", "#include <ctscriptplugin.h>\n#include <legacy_file_pi.h>")
             # Keep the VM + object declarations, without pulling in the Windows

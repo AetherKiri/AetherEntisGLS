@@ -6171,7 +6171,12 @@ RSObject * RSVertexVariantBufferClass::method_setBoneMatrix
 	RSContext::SArgList	arg( ppArg, count ) ;
 	//
 	const size_t		iMesh = (size_t) arg.IntAt( 0 ) ;
-	const size_t		nCount = (size_t) arg.IntAt( 1 ) ;
+	const auto matrixCount = arg.IntAt( 1 ) ;
+	if ( matrixCount < 0 || static_cast<uint64_t>(matrixCount) > SIZE_MAX / sizeof(S4DMatrix) )
+	{
+		return context.new_Boolean( false ) ;
+	}
+	const size_t		nCount = (size_t) matrixCount ;
 	const S4DMatrix *	pMatrix4 =
 		(const S4DMatrix*) arg.PointerAt( 2, nCount * sizeof(S4DMatrix) ) ;
 	if ( pMatrix4 == NULL )
@@ -6213,7 +6218,12 @@ RSObject * RSVertexVariantBufferClass::method_getBoneMatrix
 	RSContext::SArgList	arg( ppArg, count ) ;
 	//
 	const size_t	iMesh = (size_t) arg.IntAt( 0 ) ;
-	const size_t	nCount = (size_t) arg.IntAt( 1 ) ;
+	const auto matrixCount = arg.IntAt( 1 ) ;
+	if ( matrixCount < 0 || static_cast<uint64_t>(matrixCount) > SIZE_MAX / sizeof(S4DMatrix) )
+	{
+		return context.new_Boolean( false ) ;
+	}
+	const size_t	nCount = (size_t) matrixCount ;
 	S4DMatrix *		pMatrix4 =
 		(S4DMatrix*) arg.PointerAt( 2, nCount * sizeof(S4DMatrix) ) ;
 	if ( pMatrix4 == NULL )

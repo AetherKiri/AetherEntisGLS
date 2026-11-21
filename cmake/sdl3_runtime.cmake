@@ -78,6 +78,8 @@ target_link_libraries(gls4_sdl PUBLIC study_sdl_platform entis_game_files)
 if(ANDROID)
     target_link_libraries(gls4_sdl PUBLIC GLESv1_CM GLESv2 GLESv3 log)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    # The compatibility renderer requires the GLES API on iOS.
+    target_compile_definitions(gls4_sdl PRIVATE GLES_SILENCE_DEPRECATION)
     enable_language(OBJCXX)
     target_sources(gls4_sdl PRIVATE native/platform/ios/ios_gl_context.mm
         native/platform/ios/window_orientation.mm)
