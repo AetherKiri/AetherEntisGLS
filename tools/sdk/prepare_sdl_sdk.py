@@ -17,7 +17,7 @@ import subprocess
 import sys
 from entis_sdk import COTOPHA, ROOT
 from prepare_sdl_window import prepare as prepare_window, write
-from prepare_sdl_system import replace_body
+from prepare_sdl_system import replace_body, replace_once
 from prepare_sdl_graphics import transform_context
 
 
@@ -197,6 +197,15 @@ SDL_free(variables);
     loquaty_file = ROOT/'vendor/official-loquaty/Loquaty/source/loquaty_file.cpp'
     loquaty_text = loquaty_file.read_text(encoding='utf-8-sig')
     loquaty_text = loquaty_text.replace('lseek64', 'lseek').replace('off64_t', 'off_t')
+    loquaty_text = replace_once(loquaty_text, 'ftruncate( m_file, 0 ) ;', """if ( ftruncate( m_file, 0 ) != 0 )
+        {
+            Close();
+            return false;
+        }""")
+    loquaty_text = replace_once(loquaty_text, 'ftruncate( m_file, GetPosition() ) ;', """if ( ftruncate( m_file, GetPosition() ) != 0 )
+        {
+            LTrace( "failed to truncate file (error=%d)\\n", errno );
+        }""")
     write(out/'loquaty/loquaty_file.cpp', loquaty_text)
     records.append({'source': str(loquaty_file.relative_to(ROOT)),
         'sha256': hashlib.sha256(loquaty_file.read_bytes()).hexdigest(),
