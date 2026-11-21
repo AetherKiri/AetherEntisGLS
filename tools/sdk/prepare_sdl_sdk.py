@@ -204,6 +204,23 @@ for (size_t i = 0; variables[i]; ++i) {
 SDL_free(variables);
 ''')
     source_copy('Source/common/sakuraglx/sglx_std_app.cpp', std_application)
+
+    def scene_composer(text):
+        # An invalid model cannot resolve a bone. Keep the pose stream alive
+        # while the XML fallback rewinds and reads it after a binary parse failure.
+        text = replace_once(text,
+            'if ( pModelItem != nullptr )\n\t\t\t\t{\n\t\t\t\t\treturn\tnullptr ;',
+            'if ( pModelItem == nullptr )\n\t\t\t\t{\n\t\t\t\t\treturn\tnullptr ;')
+        return replace_once(text,
+            'pPoseLib->ReadLibrary( *pFile ) ;\n\tpFile = nullptr ;',
+            'pPoseLib->ReadLibrary( *pFile ) ;')
+    source_copy('Source/common/sakuraglx/render/sglx3d_scene_composer.cpp', scene_composer)
+
+    def rosetta_media(text):
+        # Attach the cloned player only after the native wrapper cast succeeds.
+        old = 'if ( pNativeObj != NULL )\n\t{\n\t\tdelete\tpClone ;\n\t\treturn\tpObj ;'
+        return replace_once(text, old, old.replace('!=', '=='))
+    source_copy('Source/common/rosetta/rosetta_media.cpp', rosetta_media)
     loquaty_file = ROOT/'vendor/official-loquaty/Loquaty/source/loquaty_file.cpp'
     loquaty_text = loquaty_file.read_text(encoding='utf-8-sig')
     loquaty_text = loquaty_text.replace('lseek64', 'lseek').replace('off64_t', 'off_t')
