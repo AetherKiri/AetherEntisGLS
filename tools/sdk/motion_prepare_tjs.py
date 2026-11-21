@@ -22,6 +22,14 @@ def write_changed(path, text):
     if not path.exists() or path.read_text() != text:
         path.write_text(text)
 
+def use_utf_conversion_header(text):
+    # The vendored UTF conversion headers are self-contained. The umbrella
+    # header also pulls in Boost.Iterator and other non-vendored modules.
+    old = '#include <boost/locale.hpp>'
+    assert text.count(old) == 1
+    return text.replace(old, '#include <boost/locale/encoding_utf.hpp>')
+
+
 def prepare_tjs_sources():
     TJS_OUT.mkdir(parents=True, exist_ok=True)
     for path in sorted([*TJS_SOURCE.glob('*.h'), *TJS_SOURCE.glob('*.cpp')]):
@@ -33,6 +41,7 @@ def prepare_tjs_sources():
             assert text.count(old) == 1
             text = text.replace(old, 'TJS_eTJSError(TJSInternalError);')
         elif path.name == 'tjsString.h':
+            text = use_utf_conversion_header(text)
             old = 'operator"" _tss'
             assert text.count(old) == 1
             text = text.replace(old, 'operator""_tss')
@@ -54,7 +63,7 @@ def prepare_tjs_sources():
 def main():
     prepare_tjs_sources()
     OUT.mkdir(parents=True, exist_ok=True)
-    config = (TJS_SOURCE / 'tjsConfig.cpp').read_text()
+    config = use_utf_conversion_header((TJS_SOURCE / 'tjsConfig.cpp').read_text())
     # A bounded, non-NUL-terminated source (including tTJSString(tjs_char))
     # must not read source[len]. ASAN caught the original order doing so.
     old = '        len++;\n        while((ch = *s) != 0 && --len)\n            *(d++) = ch, s++;'
