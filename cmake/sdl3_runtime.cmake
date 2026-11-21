@@ -31,6 +31,10 @@ if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_compile_definitions(study_sdl_platform INTERFACE
         STUDYSTEADY_GL_ES=1 STUDYSTEADY_GL_API_LEVEL=18 __API_OPEN_GL_ES__=2)
 endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    # Both the renderer and consumers of its dispatch header use GLES on iOS.
+    target_compile_definitions(study_sdl_platform INTERFACE GLES_SILENCE_DEPRECATION)
+endif()
 target_link_libraries(study_sdl_platform INTERFACE SDL3::SDL3)
 if(AETHER_ENTISGLS_EMBEDDED)
     target_compile_definitions(study_sdl_platform INTERFACE AETHER_ENTISGLS_EMBEDDED=1)
@@ -78,8 +82,6 @@ target_link_libraries(gls4_sdl PUBLIC study_sdl_platform entis_game_files)
 if(ANDROID)
     target_link_libraries(gls4_sdl PUBLIC GLESv1_CM GLESv2 GLESv3 log)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    # The compatibility renderer requires the GLES API on iOS.
-    target_compile_definitions(gls4_sdl PRIVATE GLES_SILENCE_DEPRECATION)
     enable_language(OBJCXX)
     target_sources(gls4_sdl PRIVATE native/platform/ios/ios_gl_context.mm
         native/platform/ios/window_orientation.mm)
