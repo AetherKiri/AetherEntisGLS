@@ -7006,8 +7006,8 @@ RSObject * RSVertexBufferClass::method_getMeshInfoAt
 	}
 	const size_t	nCopyVerteics = (size_t) arg.IntAt( 2 ) ;
 	//
-	S3DVertexBufferInterface::MeshInfo	mi ;
-	eslFillMemory( &mi, 0, sizeof(S3DVertexBufferInterface::MeshInfo) ) ;
+	S3DVertexBufferInterface::MeshInfo	mi {} ;
+	mi.vCenter = S3DVector( 0, 0, 0 ) ;
 	//
 	mi.pMaterial = ESLTypeCast<S3DMaterial>
 				( pInfo->GetMemberNativeObjAs( context, L"pMaterial" ) ) ;
@@ -7100,8 +7100,8 @@ RSObject * RSVertexBufferClass::method_setBoneWeightMap
 	RSContext::SArgList	arg( ppArg, count ) ;
 	const size_t	iMesh = (size_t) arg.IntAt( 0 ) ;
 	//
-	S3DVertexBufferInterface::MeshInfo	mi ;
-	eslFillMemory( &mi, 0, sizeof(S3DVertexBufferInterface::MeshInfo) ) ;
+	S3DVertexBufferInterface::MeshInfo	mi {} ;
+	mi.vCenter = S3DVector( 0, 0, 0 ) ;
 	if ( pVBO->GetMeshInfoAt( mi, iMesh, 0 ) )
 	{
 		return	context.new_Boolean( false ) ;
@@ -7144,8 +7144,8 @@ RSObject * RSVertexBufferClass::method_setBoneJointMap
 	RSContext::SArgList	arg( ppArg, count ) ;
 	const size_t	iMesh = (size_t) arg.IntAt( 0 ) ;
 	//
-	S3DVertexBufferInterface::MeshInfo	mi ;
-	eslFillMemory( &mi, 0, sizeof(S3DVertexBufferInterface::MeshInfo) ) ;
+	S3DVertexBufferInterface::MeshInfo	mi {} ;
+	mi.vCenter = S3DVector( 0, 0, 0 ) ;
 	if ( pVBO->GetMeshInfoAt( mi, iMesh, 0 ) )
 	{
 		return	context.new_Boolean( false ) ;

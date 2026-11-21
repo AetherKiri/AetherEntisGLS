@@ -2658,8 +2658,8 @@ SGLError S3DRenderBuffer::GetMeshBufferAsSinglePrimitiveOfVB
 	const size_t	nCount = vb.GetMeshCount() ;
 	for ( size_t iMesh = 0; iMesh < nCount; iMesh ++ )
 	{
-		S3DVertexBufferInterface::MeshInfo	miMesh ;
-		eslFillMemory( &miMesh, 0, sizeof(miMesh) ) ;
+		S3DVertexBufferInterface::MeshInfo	miMesh {} ;
+		miMesh.vCenter = S3DVector( 0, 0, 0 ) ;
 		//
 		if ( vb.GetMeshInfoAt( miMesh, iMesh, 0 ) )
 		{
@@ -3824,8 +3824,8 @@ SGLError S3DRenderBuffer::AddVertexBuffer
 	//
 	// ｚソート用領域判定
 	//
-	MeshInfo	mshinf ;
-	eslFillMemory( &mshinf, 0, sizeof(MeshInfo) ) ;
+	MeshInfo	mshinf {} ;
+	mshinf.vCenter = S3DVector( 0, 0, 0 ) ;
 	pBuffer->GetMeshInfoAt( mshinf, iFirst, 0 ) ;
 	//
 	if ( iFirst + 1 < (size_t) iEnd )
