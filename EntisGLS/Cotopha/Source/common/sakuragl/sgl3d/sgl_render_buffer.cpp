@@ -3789,18 +3789,14 @@ SGLError S3DRenderBuffer::AddVertexBuffer
 			pre->pInstancingMatrix =
 				(S4DMatrix*) m_bufRender.Allocate
 								( nInstancing * sizeof(S4DMatrix) ) ;
-			eslCopyMemory
-				( pre->pInstancingMatrix,
-					pmatInstancing, nInstancing * sizeof(S4DMatrix) ) ;
+			std::uninitialized_copy_n( pmatInstancing, nInstancing, pre->pInstancingMatrix ) ;
 		}
 		if ( pColorInstancing != NULL )
 		{
 			pre->pInstancingColor =
 				(S3DColor*) m_bufRender.Allocate
 								( nInstancing * sizeof(S3DColor) ) ;
-			eslCopyMemory
-				( pre->pInstancingColor,
-					pColorInstancing, nInstancing * sizeof(S3DColor) ) ;
+			std::uninitialized_copy_n( pColorInstancing, nInstancing, pre->pInstancingColor ) ;
 		}
 	}
 	//
