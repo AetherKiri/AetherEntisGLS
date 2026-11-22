@@ -1,5 +1,6 @@
 ﻿
 #include <memory>
+#include <functional>
 #include <sakuragl/sakuragl.h>
 #include <sakuragl/sgl3d/sgl_render_parameter_context.h>
 #include <sakuragl/sgl3d/sgl_render_buffer.h>
@@ -14,6 +15,29 @@
 
 using namespace SSystem ;
 using namespace SakuraGL ;
+
+namespace
+{
+	// The public bone-buffer API permits the same or overlapping live views.
+	void MoveBoneTranslations( S3DVector* dst, const S3DVector* src, size_t count )
+	{
+		if ( count == 0 || dst == src )
+			return ;
+		if ( std::less<const S3DVector*>{}( dst, src ) )
+		{
+			for ( size_t i = 0; i < count; ++i )
+				dst[i] = src[i] ;
+		}
+		else
+		{
+			while ( count != 0 )
+			{
+				--count ;
+				dst[count] = src[count] ;
+			}
+		}
+	}
+}
 
 
 
@@ -459,8 +483,7 @@ SGLError S3DRenderBuffer::VariantBuffer::SetBoneMatrix
 	pmv->flagUpdateBone = true ;
 	eslMoveMemory
 		( pmv->pBoneMatrix, pMatrix, nCount * sizeof(S3DMatrix) ) ;
-	eslMoveMemory
-		( pmv->pBoneTrans, pTrans, nCount * sizeof(S3DVector) ) ;
+	MoveBoneTranslations( pmv->pBoneTrans, pTrans, nCount ) ;
 	return	sglErrSuccess ;
 }
 
@@ -484,8 +507,7 @@ size_t S3DRenderBuffer::VariantBuffer::GetBoneMatrix
 	}
 	eslMoveMemory
 		( pMatrix, pmv->pBoneMatrix, nCount * sizeof(S3DMatrix) ) ;
-	eslMoveMemory
-		( pTrans, pmv->pBoneTrans, nCount * sizeof(S3DVector) ) ;
+	MoveBoneTranslations( pTrans, pmv->pBoneTrans, nCount ) ;
 	return	nCount ;
 }
 
@@ -4446,17 +4468,20 @@ SGLError S3DRenderBuffer::SetBoneMatrix
 			(S3DMatrix*) m_bufRender.Allocate
 							( pre->countBone * sizeof(S3DMatrix) ) ;
 	}
-	if ( pre->pBoneTrans == NULL )
+	if ( pre->pBoneTrans == NULL && nCount != 0 )
 	{
 		pre->pBoneTrans =
 			(S3DVector*) m_bufRender.Allocate
 							( pre->countBone * sizeof(S3DVector) ) ;
+		std::uninitialized_copy_n( pTrans, nCount, pre->pBoneTrans ) ;
+	}
+	else
+	{
+		MoveBoneTranslations( pre->pBoneTrans, pTrans, nCount ) ;
 	}
 	pre->flagUpdateBone = true ;
 	eslMoveMemory
 		( pre->pBoneMatrix, pMatrix, nCount * sizeof(S3DMatrix) ) ;
-	eslMoveMemory
-		( pre->pBoneTrans, pTrans, nCount * sizeof(S3DVector) ) ;
 	return	sglErrSuccess ;
 }
 
@@ -4481,8 +4506,7 @@ size_t S3DRenderBuffer::GetBoneMatrix
 	}
 	eslMoveMemory
 		( pMatrix, pre->pBoneMatrix, nCount * sizeof(S3DMatrix) ) ;
-	eslMoveMemory
-		( pTrans, pre->pBoneTrans, nCount * sizeof(S3DVector) ) ;
+	MoveBoneTranslations( pTrans, pre->pBoneTrans, nCount ) ;
 	return	nCount ;
 }
 
@@ -5092,10 +5116,7 @@ S3DVertexVariantBuffer * S3DRenderBuffer::CreateVariantBuffer( void )
 				( pmv->pBoneMatrix,
 					pre->pBoneMatrix,
 					pre->countBone * sizeof(S3DMatrix) ) ;
-			eslCopyMemory
-				( pmv->pBoneTrans,
-					pre->pBoneTrans,
-					pre->countBone * sizeof(S3DVector) ) ;
+			std::uninitialized_copy_n( pre->pBoneTrans, pre->countBone, pmv->pBoneTrans ) ;
 			iNextBoneBuf += pre->countBone ;
 		}
 		//
@@ -5165,10 +5186,7 @@ SGLError S3DRenderBuffer::UpdateVertexVariant
 					( pre->pBoneMatrix,
 						pmv->pBoneMatrix,
 						pre->countBone * sizeof(S3DMatrix) ) ;
-				eslCopyMemory
-					( pre->pBoneTrans,
-						pmv->pBoneTrans,
-						pre->countBone * sizeof(S3DVector) ) ;
+				MoveBoneTranslations( pre->pBoneTrans, pmv->pBoneTrans, pre->countBone ) ;
 				pre->flagUpdateBone = true ;
 			}
 		}
