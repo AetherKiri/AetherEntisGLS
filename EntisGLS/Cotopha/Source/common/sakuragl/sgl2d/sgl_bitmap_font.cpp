@@ -1,5 +1,6 @@
 ﻿
 #include <sakuragl/sakuragl.h>
+#include <cstddef>
 #include <sakuragl/sgl2d_image.h>
 #include <sakuragl/sgl2d/sgl_bitmap_font.h>
 
@@ -307,10 +308,12 @@ SGLError SGLBitmapFontLoader::GetFontMetrics
 		ESLAssert( sizeof(pcgHeader->pitchChar) == sizeof(int32_t) ) ;
 		memmove( &(metrics.nWidth),
 					&(pcgHeader->pitchChar), sizeof(int32_t) ) ;
-		ESLAssert( sizeof(metrics.rctExterior) == sizeof(SGLImageRect) ) ;
-		ESLAssert( sizeof(pcgHeader->rctExterior) == sizeof(SGLImageRect) ) ;
-		memmove( &metrics.rctExterior,
-					&(pcgHeader->rctExterior), sizeof(SGLImageRect) ) ;
+		// The glyph cache may store this header at an unaligned address.
+		const uint8_t * rect = &pCache->memory[offsetAddr] + offsetof(CharacterHeader, rctExterior) ;
+		memcpy( &metrics.rctExterior.x, rect + offsetof(SGLImageRect, x), sizeof(int32_t) ) ;
+		memcpy( &metrics.rctExterior.y, rect + offsetof(SGLImageRect, y), sizeof(int32_t) ) ;
+		memcpy( &metrics.rctExterior.w, rect + offsetof(SGLImageRect, w), sizeof(int32_t) ) ;
+		memcpy( &metrics.rctExterior.h, rect + offsetof(SGLImageRect, h), sizeof(int32_t) ) ;
 	}
 	else
 	#endif
