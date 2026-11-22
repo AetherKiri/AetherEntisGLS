@@ -1172,9 +1172,10 @@ SGLError SakuraGL::sglNormalizeImageBuffer
 		if ( (pNormalized->ptrPalette != NULL)
 			&& (pImage->ptrPalette != NULL) )
 		{
-			eslMoveMemory
-				( pNormalized->ptrPalette,
-					pImage->ptrPalette, sizeof(SGLPalette) * 0x100 ) ;
+			for ( size_t i = 0; i < 0x100; i ++ )
+			{
+				pNormalized->ptrPalette[i] = pImage->ptrPalette[i] ;
+			}
 		}
 		//
 		// 古い画像オブジェクト削除

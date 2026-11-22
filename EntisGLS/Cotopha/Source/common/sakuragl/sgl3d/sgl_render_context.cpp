@@ -1557,7 +1557,9 @@ SGLError S3DShadowMapInfo::SetShadowMappingInfo
 	{
 		return	sglErrInvalidParam ;
 	}
-	eslFillMemory( this, 0, sizeof(S3DShadowMapInfo) ) ;
+	const S3DVector4 zero(0, 0, 0, 0) ;
+	*this = S3DShadowMapInfo{ zero, zero, zero, zero, zero,
+		0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, {} } ;
 	//
 	S3DVector	vScreen ;
 	float32_t	zCameraOffset = 0.0f ;
@@ -2126,8 +2128,8 @@ bool S3DVertexBufferInterface::GetCircumscribedParallelepiped
 	bool	fParallelepiped = false ;
 	for ( size_t i = 0; i < nCount; i ++ )
 	{
-		MeshInfo	info ;
-		eslFillMemory( &info, 0, sizeof(MeshInfo) ) ;
+		MeshInfo	info {} ;
+		info.vCenter = S3DVector( 0, 0, 0 ) ;
 		if ( !GetMeshInfoAt( info, i, 0 ) )
 		{
 			info.pvVertex = bufTemp.GetArray( info.countVertex ) ;
@@ -2167,8 +2169,8 @@ size_t S3DVertexBufferInterface::CountOfTotalPolygons( void ) const
 	size_t	nCount = GetMeshCount() ;
 	for ( size_t i = 0; i < nCount; i ++ )
 	{
-		MeshInfo	info ;
-		eslFillMemory( &info, 0, sizeof(MeshInfo) ) ;
+		MeshInfo	info {} ;
+		info.vCenter = S3DVector( 0, 0, 0 ) ;
 		if ( !GetMeshInfoAt( info, i, 0 ) )
 		{
 			nTotal += info.countPrimitive ;
@@ -2185,8 +2187,8 @@ size_t S3DVertexBufferInterface::CountOfTotalVertices( void ) const
 	size_t	nCount = GetMeshCount() ;
 	for ( size_t i = 0; i < nCount; i ++ )
 	{
-		MeshInfo	info ;
-		eslFillMemory( &info, 0, sizeof(MeshInfo) ) ;
+		MeshInfo	info {} ;
+		info.vCenter = S3DVector( 0, 0, 0 ) ;
 		if ( !GetMeshInfoAt( info, i, 0 ) )
 		{
 			nTotal += info.countVertex ;

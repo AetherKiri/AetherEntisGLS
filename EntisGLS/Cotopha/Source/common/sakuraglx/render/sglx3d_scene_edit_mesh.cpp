@@ -4,6 +4,8 @@
 #include <sakuraglx/render/sglx3d_scene_item.h>
 #include <sakuraglx/render/sglx3d_scene_edit_mesh.h>
 
+#include <new>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
 using namespace Rosetta ;
@@ -4590,11 +4592,11 @@ void S3DMeshEditor::Patch::ConvertFromMeshBuffer
 void S3DMeshEditor::Patch::ConvertFromVertexBuffer
 	( const S3DVertexBufferInterface& vbo )
 {
-	S3DVertexBufferInterface::MeshInfo	infMesh ;
+	S3DVertexBufferInterface::MeshInfo	infMesh{} ;
+	infMesh.vCenter = S3DVector(0, 0, 0) ;
 	const size_t	nMeshCount = vbo.GetMeshCount() ;
 	size_t			nTotalVertex = 0 ;
 	size_t			nTotalIndex = 0 ;
-	eslFillMemory( &infMesh, 0, sizeof(infMesh) ) ;
 	for ( size_t iMesh = 0; iMesh < nMeshCount; iMesh ++ )
 	{
 		vbo.GetMeshInfoAt( infMesh, iMesh, 0 ) ;
@@ -22916,12 +22918,9 @@ void S3DBooleanMeshEditor::AddFaceEdgeCrossPoint
 	// 交差点情報生成
 	//
 	MeshCrossEdge *	pmceNew =
-		(MeshCrossEdge*) m_bufWork.Allocate( sizeof(MeshCrossEdge) ) ;
-	eslFillMemory( pmceNew, 0, sizeof(MeshCrossEdge) ) ;
-	pmceNew->iFaceEdge = (ssize_t) iFaceEdge ;
-	pmceNew->pMesh = pmwbCross ;
-	pmceNew->iCrossFace = (ssize_t) iCrossFace ;
-	pmceNew->vCross = vCross ;
+		::new (m_bufWork.Allocate( sizeof(MeshCrossEdge) )) MeshCrossEdge{
+			nullptr, (ssize_t) iFaceEdge, pmwbCross, (ssize_t) iCrossFace,
+			S3DMeshEditor::Edge(0, 0), nullptr, vCross, S2DVector(0, 0) } ;
 	//
 	const uint32_t *	pFaceIndex = pmwb->m_mesh.m_bufIndex.GetConstArray() + iFace * 3 ;
 	const S3DVector4 *	pvVertex = pmwb->m_mesh.m_bufVertex.GetConstArray() ;
@@ -23035,15 +23034,8 @@ void S3DBooleanMeshEditor::AddCrossEdgePointAtFace
 	// 交差点情報生成
 	//
 	MeshCrossEdge *	pmceNew =
-		(MeshCrossEdge*) m_bufWork.Allocate( sizeof(MeshCrossEdge) ) ;
-	eslFillMemory( pmceNew, 0, sizeof(MeshCrossEdge) ) ;
-	pmceNew->iFaceEdge = -1 ;
-	pmceNew->pMesh = pmwbCross ;
-	pmceNew->iCrossFace = -1 ;
-	pmceNew->edge = edgeCross ;
-	pmceNew->pFaces = pfpEdgeFaces ;
-	pmceNew->vCross = vCross ;
-	pmceNew->vCoord = vCoord ;
+		::new (m_bufWork.Allocate( sizeof(MeshCrossEdge) )) MeshCrossEdge{
+			nullptr, -1, pmwbCross, -1, edgeCross, pfpEdgeFaces, vCross, vCoord } ;
 	//
 	// 稜線を含む面
 	//

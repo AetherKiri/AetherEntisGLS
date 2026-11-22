@@ -2,6 +2,8 @@
 #if	!defined(__SAKURAGLX3D_SCENE_ITEM_BULLET_H__)
 #define	__SAKURAGLX3D_SCENE_ITEM_BULLET_H__	1
 
+#include <vector>
+
 namespace	SakuraGL
 {
 	//////////////////////////////////////////////////////////////////////////
@@ -48,7 +50,7 @@ namespace	SakuraGL
 			uint32_t			nStateFlags ;	// complex of enum BulletStateFlag
 			uint32_t			nAlpha ;
 			uint32_t			nTrackCount ;
-			S3DDVector			vTrack[1] ;		// [0] == vPos
+			std::vector<S3DDVector>	vTrack ;		// [0] == vPos
 												// [nTrackCount] まで有効
 		} ;
 		enum	BulletBehaviorFlag

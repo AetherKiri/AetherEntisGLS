@@ -8506,11 +8506,12 @@ void SGLOpenGLVertexBuffer::WriteMorphInstanceToVertexTexture
 	SGLImageRect	rect( 0, (int) ei.yVTMorphInstance,
 							ei.sizeVertexTex.w, (int) hLines ) ;
 	SGLImageInfo	imginf ;
-	S3DVector4 *	pvBuf =
-		(S3DVector4*) pImage->LockBuffer
+	// The locked texture is pixel storage, not an array of C++ vectors.
+	auto* pPixels =
+		pImage->LockBuffer
 						( imginf, SGLImageObject::lockWrite, &rect ) ;
 	//
-	eslCopyMemory( pvBuf, pvMorphInstance, nCount * sizeof(S3DVector4) * 2 ) ;
+	eslCopyMemory( pPixels, pvMorphInstance, nCount * sizeof(S3DVector4) * 2 ) ;
 	//
 	pImage->UnlockBuffer( SGLImageObject::lockWrite ) ;
 }

@@ -4,6 +4,9 @@
 #include <sakuragl/sgl2d/sgl_image_conversion.h>
 #include <sakuragl/sgl2d/sgl_paint_buffer.h>
 
+#include <cstring>
+#include <functional>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
 
@@ -976,7 +979,28 @@ PROC_ENCODE_PIXEL_COMPOSITION
 void __fastcall SakuraGL::sglDecodePixelCompositionARGB32
 	( SGLPalette* pDst, const uint8_t* pSrc, size_t nCount )
 {
-	eslMoveMemory( pDst, pSrc, nCount * 4 ) ;
+	static_assert(sizeof(SGLPalette) == sizeof(uint32_t), "ARGB32 palette entries must be four bytes");
+	if (nCount == 0)
+		return ;
+
+	// The input may be unaligned and may overlap the destination at any byte.
+	// Read a whole pixel before assigning it and preserve the memmove direction.
+	const auto copyPixel = [&](size_t i)
+	{
+		uint32_t pixel ;
+		std::memcpy(&pixel, pSrc + i * sizeof(pixel), sizeof(pixel)) ;
+		pDst[i] = pixel ;
+	} ;
+	if (std::less<const void*>{}(pDst, pSrc))
+	{
+		for (size_t i = 0; i < nCount; ++i)
+			copyPixel(i) ;
+	}
+	else
+	{
+		while (nCount != 0)
+			copyPixel(--nCount) ;
+	}
 }
 
 // ARGB32 --> ARGB32

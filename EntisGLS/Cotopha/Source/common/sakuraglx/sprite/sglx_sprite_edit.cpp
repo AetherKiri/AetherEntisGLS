@@ -66,8 +66,15 @@ SGLSpriteEdit::EditStyle::EditStyle( void )
 // 構築関数（複製）
 //////////////////////////////////////////////////////////////////////////////
 SGLSpriteEdit::EditStyle::EditStyle( const SGLSpriteEdit::EditStyle& style )
+	: SGLSpriteText::TextStyle( style ),
+	  nEditFlags( style.nEditFlags ),
+	  nCaretWidth( style.nCaretWidth ),
+	  nCaretBlinkInterval( style.nCaretBlinkInterval ),
+	  rgbaCaretColor( style.rgbaCaretColor ),
+	  rgbaSelBackColor( style.rgbaSelBackColor ),
+	  decoSel( style.decoSel ),
+	  fontIME( style.fontIME )
 {
-	memmove( this, &style, sizeof(EditStyle) ) ;
 }
 
 // 代入
@@ -76,7 +83,14 @@ const SGLSpriteEdit::EditStyle&
 	SGLSpriteEdit::EditStyle::operator =
 		( const SGLSpriteEdit::EditStyle& style )
 {
-	memmove( this, &style, sizeof(EditStyle) ) ;
+	SGLSpriteText::TextStyle::operator = ( style ) ;
+	nEditFlags = style.nEditFlags ;
+	nCaretWidth = style.nCaretWidth ;
+	nCaretBlinkInterval = style.nCaretBlinkInterval ;
+	rgbaCaretColor = style.rgbaCaretColor ;
+	rgbaSelBackColor = style.rgbaSelBackColor ;
+	decoSel = style.decoSel ;
+	fontIME = style.fontIME ;
 	return	*this ;
 }
 
@@ -3667,8 +3681,11 @@ SGLSpriteEditColumn::ColumnStyle::ColumnStyle( void )
 //////////////////////////////////////////////////////////////////////////////
 SGLSpriteEditColumn::ColumnStyle::ColumnStyle
 	( const SGLSpriteEditColumn::ColumnStyle& style )
+	: font( style.font ),
+	  minLineNumWidth( style.minLineNumWidth ),
+	  leftMargin( style.leftMargin ),
+	  rightMargin( style.rightMargin )
 {
-	memmove( this, &style, sizeof(ColumnStyle) ) ;
 }
 
 // 代入
@@ -3677,7 +3694,10 @@ const SGLSpriteEditColumn::ColumnStyle&
 	SGLSpriteEditColumn::ColumnStyle::operator =
 			( const SGLSpriteEditColumn::ColumnStyle& style )
 {
-	memmove( this, &style, sizeof(ColumnStyle) ) ;
+	font = style.font ;
+	minLineNumWidth = style.minLineNumWidth ;
+	leftMargin = style.leftMargin ;
+	rightMargin = style.rightMargin ;
 	return	*this ;
 }
 

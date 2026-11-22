@@ -389,7 +389,6 @@ ECS_LIB_IMPLEMENT_EXPORT_SYSCALL(SakuraGL_PaintContext_DrawImage,context,arg)
 			context->AtomicTranslateAddress( arg[3].i, sizeof(SGLImageRect) ) ;
 	//
 	SGLPaintParam	ppParam ;
-	eslFillMemory( &ppParam, 0, sizeof(SGLPaintParam) ) ;
 	ppParam.nFlags			= pPaintParam->nFlags ;
 	ppParam.ptPaint			= pPaintParam->ptPaint ;
 	ppParam.nTransparency	= pPaintParam->nTransparency ;
@@ -445,7 +444,6 @@ ECS_LIB_IMPLEMENT_EXPORT_SYSCALL(SakuraGL_PaintContext_DrawMesh,context,arg)
 			context->AtomicTranslateAddress( arg[7].i, sizeof(SGLImageRect) ) ;
 	//
 	SGLPaintParam	ppParam ;
-	eslFillMemory( &ppParam, 0, sizeof(SGLPaintParam) ) ;
 	ppParam.nFlags			= pPaintParam->nFlags ;
 	ppParam.ptPaint			= pPaintParam->ptPaint ;
 	ppParam.nTransparency	= pPaintParam->nTransparency ;

@@ -4,6 +4,8 @@
 #include <sakuragl/sgl3d_image.h>
 #include <sakuragl/sgl3d/sgl_render_software_renderer.h>
 
+#include <memory>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
 
@@ -614,18 +616,15 @@ SGLError S3DSoftwareRenderer::AddIndexedTriangleList
 		m_tnbNormal.SetForIndexedTriangleList
 			( countPolygon, countVertex,
 				pMesh->pvVertex, pvUVMap, pIndexedList ) ;
-		eslMoveMemory
-			( pMesh->pvNormal,
-				m_tnbNormal.GetNormalBuffer(),
-				countVertex * sizeof(S3DVector4) ) ;
+		std::uninitialized_copy_n
+			( m_tnbNormal.GetNormalBuffer(), countVertex, pMesh->pvNormal ) ;
 	}
 	//
 	// UV マップ
 	//
 	if ( pvUVMap != NULL )
 	{
-		eslMoveMemory
-			( pMesh->pvUVMap, pvUVMap, countVertex * sizeof(S2DVector) ) ;
+		std::uninitialized_copy_n( pvUVMap, countVertex, pMesh->pvUVMap ) ;
 	}
 	//
 	// シェーディング

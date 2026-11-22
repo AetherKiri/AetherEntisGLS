@@ -6,8 +6,26 @@
 #include <sakuraglx/sglx3d_render.h>
 #include <sakuraglx/render/sglx_model_loader.h>
 
+#include <algorithm>
+#include <functional>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
+
+namespace
+{
+	// The model update APIs can receive the same or overlapping buffer views.
+	template<class T>
+	void CopyModelElements( T* dst, const T* src, size_t count )
+	{
+		if ( count == 0 || dst == src )
+			return ;
+		if ( std::less<const T*>{}( dst, src ) )
+			std::copy_n( src, count, dst ) ;
+		else
+			std::copy_backward( src, src + count, dst + count ) ;
+	}
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3906,9 +3924,9 @@ SGLError S3DModelBuffer::UpdateIndexedTriangleList
 	{
 		if ( (pvVertex != NULL) && (pMesh->m_iVertex >= 0) )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( GetVertexBufferAt( pMesh->m_iVertex ),
-					pvVertex, countVertex * sizeof(S3DVector4) ) ;
+					pvVertex, countVertex ) ;
 			//
 			if ( (size_t) pMesh->m_iVertex < m_iUpdateVertex )
 			{
@@ -3917,9 +3935,9 @@ SGLError S3DModelBuffer::UpdateIndexedTriangleList
 		}
 		if ( (pvNormal != NULL) && (pMesh->m_iNormal >= 0) )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( GetNormalBufferAt( pMesh->m_iNormal ),
-					pvNormal, countVertex * sizeof(S3DVector4) ) ;
+					pvNormal, countVertex ) ;
 			//
 			if ( (size_t) pMesh->m_iNormal < m_iUpdateNormal )
 			{
@@ -3928,16 +3946,16 @@ SGLError S3DModelBuffer::UpdateIndexedTriangleList
 		}
 		if ( pvUVMap != NULL )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( pMesh->m_bufUVMap.GetArray( countVertex ),
-					pvUVMap, countVertex * sizeof(S2DVector) ) ;
+					pvUVMap, countVertex ) ;
 			pMesh->m_bufUVMap.FinishArray() ;
 		}
 		if ( pColor != NULL )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( pMesh->m_bufColor.GetArray( countVertex ),
-					pColor, countVertex * sizeof(S3DColor) ) ;
+					pColor, countVertex ) ;
 			pMesh->m_bufColor.FinishArray() ;
 		}
 		if ( pIndexedList != NULL )
@@ -3969,9 +3987,9 @@ SGLError S3DModelBuffer::UpdateTriangleStrip
 	{
 		if ( (pvVertex != NULL) && (pMesh->m_iVertex >= 0) )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( GetVertexBufferAt( pMesh->m_iVertex ),
-					pvVertex, countVertex * sizeof(S3DVector4) ) ;
+					pvVertex, countVertex ) ;
 			//
 			if ( (size_t) pMesh->m_iVertex < m_iUpdateVertex )
 			{
@@ -3980,9 +3998,9 @@ SGLError S3DModelBuffer::UpdateTriangleStrip
 		}
 		if ( (pvNormal != NULL) && (pMesh->m_iNormal >= 0) )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( GetNormalBufferAt( pMesh->m_iNormal ),
-					pvNormal, countVertex * sizeof(S3DVector4) ) ;
+					pvNormal, countVertex ) ;
 			//
 			if ( (size_t) pMesh->m_iNormal < m_iUpdateNormal )
 			{
@@ -4024,9 +4042,9 @@ SGLError S3DModelBuffer::UpdateIndexedPrimitiveList
 	{
 		if ( (pvVertex != NULL) && (pMesh->m_iVertex >= 0) )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( GetVertexBufferAt( pMesh->m_iVertex ),
-					pvVertex, countVertex * sizeof(S3DVector4) ) ;
+					pvVertex, countVertex ) ;
 			//
 			if ( (size_t) pMesh->m_iVertex < m_iUpdateVertex )
 			{
@@ -4035,9 +4053,9 @@ SGLError S3DModelBuffer::UpdateIndexedPrimitiveList
 		}
 		if ( (pvNormal != NULL) && (pMesh->m_iNormal >= 0) )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( GetNormalBufferAt( pMesh->m_iNormal ),
-					pvNormal, countVertex * sizeof(S3DVector4) ) ;
+					pvNormal, countVertex ) ;
 			//
 			if ( (size_t) pMesh->m_iNormal < m_iUpdateNormal )
 			{
@@ -4046,16 +4064,16 @@ SGLError S3DModelBuffer::UpdateIndexedPrimitiveList
 		}
 		if ( pvUVMap != NULL )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( pMesh->m_bufUVMap.GetArray( countVertex ),
-					pvUVMap, countVertex * sizeof(S2DVector) ) ;
+					pvUVMap, countVertex ) ;
 			pMesh->m_bufUVMap.FinishArray() ;
 		}
 		if ( pColor != NULL )
 		{
-			eslMoveMemory
+			CopyModelElements
 				( pMesh->m_bufColor.GetArray( countVertex ),
-					pColor, countVertex * sizeof(S3DColor) ) ;
+					pColor, countVertex ) ;
 			pMesh->m_bufColor.FinishArray() ;
 		}
 		if ( pIndexedList != NULL )
@@ -8406,8 +8424,8 @@ SGLError S3DModelBuffer::GlobalIlluminationForVertexColor
 	{
 		return	sglErrFailed ;
 	}
-	S3DVertexBufferInterface::MeshInfo	mi ;
-	eslFillMemory( &mi, 0, sizeof(S3DVertexBufferInterface::MeshInfo) ) ;
+	S3DVertexBufferInterface::MeshInfo	mi {} ;
+	mi.vCenter = S3DVector( 0, 0, 0 ) ;
 	if ( gip.pVBO->GetMeshInfoAt( mi, gip.iMesh, 0 ) )
 	{
 		return	sglErrFailed ;

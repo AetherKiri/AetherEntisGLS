@@ -5,6 +5,7 @@
 #include <sakuraglx/sglx3d_render.h>
 #include <sakuraglx/render/sglx_model_loader.h>
 #include <sakuraglx/extra/sglx_model_gltf_importer.h>
+#include <climits>
 
 using namespace SSystem ;
 using namespace SakuraGL ;
@@ -2236,8 +2237,15 @@ SGLError S3DStdXMLModelLoader::ParseMeshTag
 			return	sglErrFailed ;
 		}
 		size_t	i, j ;
-		size_t	countPolygon = (size_t) pxmlTag->GetAttrIntegerAs( L"polygons" ) ;
-		size_t	countVertex = (size_t) pxmlTag->GetAttrIntegerAs( L"vertics" ) ;
+		const auto polygonCount = pxmlTag->GetAttrIntegerAs( L"polygons" ) ;
+		const auto vertexCount = pxmlTag->GetAttrIntegerAs( L"vertics" ) ;
+		if ( polygonCount < 0 || polygonCount > INT_MAX / 3
+			|| vertexCount < 0 || vertexCount > INT_MAX / 3 )
+		{
+			return sglErrFailed ;
+		}
+		const size_t countPolygon = (size_t) polygonCount ;
+		const size_t countVertex = (size_t) vertexCount ;
 		size_t	countExAttr = (size_t) pxmlTag->GetAttrIntegerAs( L"ex_attr_count" ) ;
 		//
 		SXMLDocument::AttrInteger	aiPrimitiveTypes[] =
@@ -2266,9 +2274,7 @@ SGLError S3DStdXMLModelLoader::ParseMeshTag
 		SStringParser	sparsList ;
 		double *		pBufNum = bufNumber.GetArray( countVertex * 3 ) ;
 		int64_t *		pBufInt =
-			bufInteger.GetArray
-				( (size_t) esl_max( (int) countPolygon * 3,
-										(int) countVertex * 2 ) ) ;
+			bufInteger.GetArray( esl_max( countPolygon * 3, countVertex * 2 ) ) ;
 		//
 		S3DVector4 *	pvVertex = bufVertex.GetArray( countVertex ) ;
 		sparsList = pxmlTag->GetContentsAsString( L"vertex" ) ;
@@ -5575,8 +5581,10 @@ SGLError S3DStdModelSaver::WriteBoneChunk
 		//
 		// ボーン基本情報
 		//
-		S3DStdModelLoader::BoneInfo	boneinf ;
-		eslFillMemory( &boneinf, 0, sizeof(S3DStdModelLoader::BoneInfo) ) ;
+		S3DStdModelLoader::BoneInfo	boneinf{} ;
+		static_assert( sizeof(boneinf) == 4 * sizeof(uint32_t)
+			+ 2 * sizeof(S3DVector) + sizeof(boneinf.physMaterial) + sizeof(S4DMatrix),
+			"BoneInfo is written as a fixed binary record without padding" ) ;
 		boneinf.iBoneID = (uint32_t) FindString( aStrings, *pstrID ) ;
 		boneinf.iParentID = (uint32_t) -1 ;
 		boneinf.vBoneBase = pBone->m_vCenter ;
@@ -5674,9 +5682,9 @@ SGLError S3DStdModelSaver::WriteBoneChunk
 			{
 				continue ;
 			}
-			S3DStdModelLoader::WeightMapInfo	wmi ;
-			eslFillMemory
-				( &wmi, 0, sizeof(S3DStdModelLoader::WeightMapInfo) ) ;
+			S3DStdModelLoader::WeightMapInfo	wmi{} ;
+			static_assert( sizeof(wmi) == 4 * sizeof(uint32_t) + 2 * sizeof(S4DDMatrix),
+				"WeightMapInfo is written as a fixed binary record without padding" ) ;
 			wmi.iMesh = (uint32_t) pRefMeshInfo[j].iMesh ;
 			wmi.nCount = (uint32_t) pMesh->m_countVertex ;
 			wmi.matIMesh = pRefMeshInfo[j].matIMesh ;

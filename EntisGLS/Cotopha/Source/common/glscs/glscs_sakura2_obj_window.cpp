@@ -334,10 +334,9 @@ ESL_IMPLEMENT_CLASS_INFO2( ECSSakura2::WindowObject, Object, SGLWindow )
 // 構築関数
 //////////////////////////////////////////////////////////////////////////////
 WindowObject::WindowObject( VirtualMachine * vm )
+	: m_paramWindow{ createdNothing, modeWindow, 0, 0, 0, 0, 0, 0, 0, 0,
+		SakuraGL::SGLPoint(0, 0), false, false }
 {
-	eslFillMemory( &m_paramWindow, 0, sizeof(CREATION_PARAM) ) ;
-	m_paramWindow.statusCreation = createdNothing ;
-	m_paramWindow.modeCopperation = modeWindow ;
 	m_nStereoParam = 0 ;
 	//
 	eslFillMemory( &m_paramExFrame, 0, sizeof(EXTERIOR_FRAME_PARAM) ) ;

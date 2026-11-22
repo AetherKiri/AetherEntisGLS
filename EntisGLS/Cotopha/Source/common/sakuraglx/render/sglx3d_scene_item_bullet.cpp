@@ -2,6 +2,9 @@
 #include <sakuraglx/sakuraglx.h>
 #include <sakuraglx/render/sglx3d_scene_item.h>
 
+#include <limits>
+#include <memory>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
 using namespace Rosetta ;
@@ -209,7 +212,8 @@ size_t S3DBulletItemInterface::GetMaxTrackCount( void ) const
 
 void S3DBulletItemInterface::SetMaxTrackCount( size_t nCount )
 {
-	if ( (m_nMaxTrackCount != nCount) && (nCount >= 1) )
+	if ( (m_nMaxTrackCount != nCount) && (nCount >= 1)
+		&& (nCount < std::numeric_limits<uint32_t>::max()) )
 	{
 		m_nMaxTrackCount = nCount ;
 		//
@@ -460,16 +464,17 @@ bool S3DBulletItemInterface::IsValidBullet
 S3DBulletItemInterface::Bullet *
 	S3DBulletItemInterface::NewBullet( void )
 {
-	const size_t	nObjBytes = sizeof(Bullet)
-								+ m_nMaxTrackCount * sizeof(S3DDVector) ;
-	Bullet *		pBullet = (Bullet*) esl_malloc ( nObjBytes ) ;
+	auto bullet = std::make_unique<Bullet>() ;
+	const S3DDVector zero( 0, 0, 0 ) ;
+	bullet->vPos = zero ;
+	bullet->vSpeed = zero ;
+	bullet->vTrack.resize( m_nMaxTrackCount + 1, zero ) ;
 	if ( m_idBulletNext == 0 )
 	{
 		m_idBulletNext = 1 ;
 	}
-	eslFillMemory( pBullet, 0, nObjBytes ) ;
-	pBullet->idBullet = m_idBulletNext ++ ;
-	return	pBullet ;
+	bullet->idBullet = m_idBulletNext ++ ;
+	return	bullet.release() ;
 }
 
 // Bullet 解放
@@ -486,7 +491,7 @@ void S3DBulletItemInterface::DeleteBullet
 		RSObject::ReleaseRef( pBullet->pUserObj ) ;
 		LObject::ReleaseRef( pBullet->pUserLObj ) ;
 		//
-		esl_free( pBullet ) ;
+		delete pBullet ;
 	}
 }
 

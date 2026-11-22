@@ -843,7 +843,10 @@ int SGLImageEncoder::PredictMovingVector
 			//
 			// 両方向予測ブロック
 			//
-			eslFillMemory( &halfblock, 0, sizeof(SGLImageBuffer) ) ;
+			// This scratch image borrows its pixels; retain the old zero origin
+			// and frame count while leaving the buffer itself constructed.
+			halfblock.ptOrigin = SGLPoint(0,0) ;
+			halfblock.nFrameCount = 0 ;
 			halfblock.format = nextblock.format ;
 			halfblock.width = nextblock.width ;
 			halfblock.height = nextblock.height ;

@@ -321,9 +321,7 @@ SGLError S3DModelGLTFImporter::ConvertTexture
 	}
 	const tinygltf::Sampler&	sampler = m_model.samplers[texture.sampler] ;
 	//
-	TextureEntry	txtEntry ;
-	eslFillMemory( &txtEntry, 0, sizeof(TextureEntry) ) ;
-	txtEntry.pImageEntry = pieSrc ;
+	TextureEntry	txtEntry { pieSrc, 0, SGLSize(0,0) } ;
 	//
 	if ( (sampler.minFilter == TINYGLTF_TEXTURE_FILTER_LINEAR)
 		|| (sampler.minFilter == TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST)
@@ -529,10 +527,7 @@ SGLError S3DModelGLTFImporter::ConvertMaterial
 	//
 	// エントリ情報
 	//
-	MaterialEntry	matEntry ;
-	eslFillMemory( &matEntry, 0, sizeof(MaterialEntry) ) ;
-	matEntry.pMaterial = pMaterial ;
-	matEntry.vUVScale = vUVScale ;
+	MaterialEntry	matEntry { pMaterial, vUVScale } ;
 	//
 	m_aMaterials.SetAt( iMaterial, matEntry ) ;
 	//

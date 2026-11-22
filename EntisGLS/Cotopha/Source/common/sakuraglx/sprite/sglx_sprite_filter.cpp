@@ -1,4 +1,5 @@
-﻿
+﻿#include <algorithm>
+#include <functional>
 #include <sakuraglx/sakuraglx.h>
 #include <sakuragl/sgl_erisa_lib.h>
 #include <sakuragl/sgl2d/sgl_image_filter.h>
@@ -11,6 +12,20 @@
 
 using namespace SSystem ;
 using namespace SakuraGL ;
+
+namespace
+{
+	// The API also accepts views into an existing mesh buffer.
+	void CopyMeshCoordinates( S2DVector* dst, const S2DVector* src, size_t count )
+	{
+		if ( count == 0 || dst == src )
+			return ;
+		if ( std::less<const S2DVector*>{}( dst, src ) )
+			std::copy_n( src, count, dst ) ;
+		else
+			std::copy_backward( src, src + count, dst + count ) ;
+	}
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1216,9 +1231,7 @@ void SGLSpriteFilterMeshWarp::SetSourceMesh( const S2DVector * pvMesh )
 	{
 		size_t	countVertex = (m_sizeInMesh.w + 1) * (m_sizeInMesh.h + 1) ;
 		m_meshSrc.SetLength( countVertex ) ;
-		eslMoveMemory
-			( m_meshSrc.GetArray(),
-				pvMesh, countVertex * sizeof(S2DVector) ) ;
+		CopyMeshCoordinates( m_meshSrc.GetArray(), pvMesh, countVertex ) ;
 		m_meshSrc.FinishArray() ;
 	}
 	else
@@ -1235,9 +1248,7 @@ void SGLSpriteFilterMeshWarp::SetDestinationMesh( const S2DVector * pvMesh )
 	{
 		size_t	countVertex = (m_sizeInMesh.w + 1) * (m_sizeInMesh.h + 1) ;
 		m_meshDst.SetLength( countVertex ) ;
-		eslMoveMemory
-			( m_meshDst.GetArray(),
-				pvMesh, countVertex * sizeof(S2DVector) ) ;
+		CopyMeshCoordinates( m_meshDst.GetArray(), pvMesh, countVertex ) ;
 		m_meshDst.FinishArray() ;
 		//
 		S2DVector	vMin = *(pvMesh ++) ;
@@ -1510,8 +1521,7 @@ void SGLSpriteFilterMeshWarp::SetFilteredMesh( void )
 	size_t	countVertex = (m_sizeInMesh.w + 1) * (m_sizeInMesh.h + 1) ;
 	ESLAssert( m_meshSrc.GetLength() >= countVertex ) ;
 	ESLAssert( m_meshDst.GetLength() >= countVertex ) ;
-	eslMoveMemory
-		( pvDstMesh, pvSrcMesh, countVertex * sizeof(S2DVector) ) ;
+	CopyMeshCoordinates( pvDstMesh, pvSrcMesh, countVertex ) ;
 	//
 	m_meshSrc.FinishArray() ;
 	m_meshDst.FinishArray() ;
@@ -1530,8 +1540,7 @@ void SGLSpriteFilterMeshWarp::CopyMeshBorderFromSource( void )
 	SGLSize		sizeInMesh = m_sizeInMesh ;
 	sizeInMesh.w ++ ;
 	//
-	eslMoveMemory
-		( pvDstMesh, pvSrcMesh, sizeInMesh.w * sizeof(S2DVector) ) ;
+	CopyMeshCoordinates( pvDstMesh, pvSrcMesh, sizeInMesh.w ) ;
 	pvDstMesh += sizeInMesh.w ;
 	pvSrcMesh += sizeInMesh.w ;
 	//
@@ -1542,8 +1551,7 @@ void SGLSpriteFilterMeshWarp::CopyMeshBorderFromSource( void )
 		pvSrcMesh += sizeInMesh.w ;
 		pvDstMesh[-1] = pvSrcMesh[-1] ;
 	}
-	eslMoveMemory
-		( pvDstMesh, pvSrcMesh, sizeInMesh.w * sizeof(S2DVector) ) ;
+	CopyMeshCoordinates( pvDstMesh, pvSrcMesh, sizeInMesh.w ) ;
 	//
 	m_meshDst.FinishArray() ;
 }

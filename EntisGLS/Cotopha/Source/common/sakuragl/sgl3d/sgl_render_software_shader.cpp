@@ -1,4 +1,6 @@
 ﻿
+#include <new>
+#include <functional>
 #include <sakuragl/sakuragl.h>
 #include <sakuragl/sgl3d_image.h>
 #include <sakuragl/sgl3d/sgl_render_software_shader.h>
@@ -160,8 +162,21 @@ void S3DRenderingShader::ShadeVertexColors
 		{
 			if ( pColorLooks != pVertexColors )
 			{
-				eslMoveMemory
-					( pColorLooks, pVertexColors, nCount * sizeof(S3DColor) ) ;
+				// Color output may be raw renderer storage. Preserve the direction
+				// of the old overlapping copy while constructing each value.
+				if ( std::less<const S3DColor*>{}( pColorLooks, pVertexColors ) )
+				{
+					for ( size_t i = 0; i < nCount; ++i )
+						::new (static_cast<void*>(pColorLooks + i)) S3DColor( pVertexColors[i] ) ;
+				}
+				else
+				{
+					for ( size_t i = nCount; i != 0; )
+					{
+						--i ;
+						::new (static_cast<void*>(pColorLooks + i)) S3DColor( pVertexColors[i] ) ;
+					}
+				}
 			}
 			return ;
 		}

@@ -2,6 +2,8 @@
 #include <sakuraglx/sakuraglx.h>
 #include <sakuraglx/render/sglx3d_scene_item.h>
 
+#include <memory>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
 using namespace Rosetta ;
@@ -1355,10 +1357,10 @@ void S3DItemInstancingSerializer::DoDynamicProcess
 	//
 	S4DMatrix *	pSrcTempMatrics = m_aDynamicMatrixs2.GetArray( nCount ) ;
 	S3DColor *	pSrcTempColors = m_aDynamicColors2.GetArray( nCount ) ;
-	eslCopyMemory
-		( pSrcTempMatrics, pDstMatrics, nCount * sizeof(S4DMatrix) ) ;
-	eslCopyMemory
-		( pSrcTempColors, pDstColors, nCount * sizeof(S3DColor) ) ;
+	std::uninitialized_copy_n
+		( pDstMatrics, nCount, pSrcTempMatrics ) ;
+	std::uninitialized_copy_n
+		( pDstColors, nCount, pSrcTempColors ) ;
 	//
 	S4DMatrix	mat4Temp ;
 	S3DColor	clrTemp ;
@@ -4161,8 +4163,8 @@ void S3DOPhysicsInstancingController::MakeHitPointsFromVBO
 {
 	SArray<S3DVector4>	bufVertex ;
 	//
-	S3DVertexBufferInterface::MeshInfo	minf ;
-	eslFillMemory( &minf, 0, sizeof(S3DVertexBufferInterface::MeshInfo) ) ;
+	S3DVertexBufferInterface::MeshInfo	minf {} ;
+	minf.vCenter = S3DVector( 0, 0, 0 ) ;
 	//
 	const size_t	nMeshCount = pVBO->GetMeshCount() ;
 	for ( size_t iMesh = 0; iMesh < nMeshCount; iMesh ++ )

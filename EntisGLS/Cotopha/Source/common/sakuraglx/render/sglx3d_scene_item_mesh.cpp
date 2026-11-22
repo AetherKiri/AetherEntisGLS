@@ -2,6 +2,8 @@
 #include <sakuraglx/sakuraglx.h>
 #include <sakuraglx/render/sglx3d_scene_item.h>
 
+#include <memory>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
 using namespace Rosetta ;
@@ -572,31 +574,23 @@ void S3DMeshBufferPropertySerializer::RenderBuffer( S3DVertexBufferInterface& vb
 		//
 		if ( pMesh->bufVertex.GetLength() == pMesh->countVertex )
 		{
-			eslCopyMemory
-				( prmbuf.pvVertex,
-					pMesh->bufVertex.GetConstArray(),
-					pMesh->countVertex * sizeof(S3DVector4) ) ;
+			std::uninitialized_copy_n
+				( pMesh->bufVertex.GetConstArray(), pMesh->countVertex, prmbuf.pvVertex ) ;
 		}
 		if ( pMesh->bufNormal.GetLength() == pMesh->countVertex )
 		{
-			eslCopyMemory
-				( prmbuf.pvNormal,
-					pMesh->bufNormal.GetConstArray(),
-					pMesh->countVertex * sizeof(S3DVector4) ) ;
+			std::uninitialized_copy_n
+				( pMesh->bufNormal.GetConstArray(), pMesh->countVertex, prmbuf.pvNormal ) ;
 		}
 		if ( pMesh->bufUVMap.GetLength() == pMesh->countVertex )
 		{
-			eslCopyMemory
-				( prmbuf.pvUVMap,
-					pMesh->bufUVMap.GetConstArray(),
-					pMesh->countVertex * sizeof(S2DVector) ) ;
+			std::uninitialized_copy_n
+				( pMesh->bufUVMap.GetConstArray(), pMesh->countVertex, prmbuf.pvUVMap ) ;
 		}
 		if ( pMesh->bufColor.GetLength() == pMesh->countVertex )
 		{
-			eslCopyMemory
-				( prmbuf.pColor,
-					pMesh->bufColor.GetConstArray(),
-					pMesh->countVertex * sizeof(S3DColor) ) ;
+			std::uninitialized_copy_n
+				( pMesh->bufColor.GetConstArray(), pMesh->countVertex, prmbuf.pColor ) ;
 		}
 		if ( pMesh->bufIndex.GetLength() == pMesh->countIndex )
 		{
@@ -4654,23 +4648,18 @@ void S3DModelRefMeshController::AddMesh
 		//
 		if ( pmoMesh->m_bufUVMap.GetLength() >= pmoMesh->m_countVertex )
 		{
-			eslCopyMemory
-				( prmbuf.pvUVMap,
-					pmoMesh->m_bufUVMap.GetConstArray(),
-					pmoMesh->m_countVertex * sizeof(S2DVector) ) ;
+			std::uninitialized_copy_n
+				( pmoMesh->m_bufUVMap.GetConstArray(), pmoMesh->m_countVertex, prmbuf.pvUVMap ) ;
 		}
 		else
 		{
-			eslFillMemory
-				( prmbuf.pvUVMap, 0,
-					pmoMesh->m_countVertex * sizeof(S2DVector) ) ;
+			std::uninitialized_fill_n
+				( prmbuf.pvUVMap, pmoMesh->m_countVertex, S2DVector( 0, 0 ) ) ;
 		}
 		if ( pmoMesh->m_bufColor.GetLength() >= pmoMesh->m_countVertex )
 		{
-			eslCopyMemory
-				( prmbuf.pColor,
-					pmoMesh->m_bufColor.GetConstArray(),
-					pmoMesh->m_countVertex * sizeof(S3DColor) ) ;
+			std::uninitialized_copy_n
+				( pmoMesh->m_bufColor.GetConstArray(), pmoMesh->m_countVertex, prmbuf.pColor ) ;
 		}
 		else
 		{

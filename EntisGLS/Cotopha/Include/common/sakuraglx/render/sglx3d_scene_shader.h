@@ -131,7 +131,8 @@ namespace	SakuraGL
 				}
 				const Value& operator = ( const Value& src )
 				{
-					eslCopyMemory( this, &src, sizeof(Value) ) ;
+					if ( this != &src )
+						eslCopyMemory( m, src.m, sizeof(m) ) ;
 					return	*this ;
 				}
 				int32_t& Int32( void )

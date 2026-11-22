@@ -8,8 +8,33 @@
 #include <sakuragl/sgl2d/sgl_paint_buffer.h>
 #include <sakuraglx/sprite/sglx_sprite_cursor.h>
 
+#include <functional>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
+
+namespace
+{
+    // Preserve the original memmove semantics for overlapping palette views.
+    void MovePaletteEntries( SGLPalette* dst, const SGLPalette* src, size_t count )
+    {
+        if ( dst == src || count == 0 )
+            return ;
+        if ( std::less<const SGLPalette*>{}( dst, src ) )
+        {
+            for ( size_t i = 0; i < count; ++i )
+                dst[i] = src[i] ;
+        }
+        else
+        {
+            while ( count != 0 )
+            {
+                --count ;
+                dst[count] = src[count] ;
+            }
+        }
+    }
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2169,9 +2194,7 @@ size_t SGLSmartImage::GetPaletteTable( SGLPalette * pPalette, size_t nCount )
 			{
 				nCount = 0x100 ;
 			}
-			eslMoveMemory
-				( pPalette, m_pImage->ptrPalette,
-						nCount * sizeof(SGLPalette) ) ;
+			MovePaletteEntries( pPalette, m_pImage->ptrPalette, nCount ) ;
 			return	nCount ;
 		}
 		else if ( (m_pImage->format & formatImageTypeMask) == formatImageGray )
@@ -2528,9 +2551,7 @@ size_t SGLSmartImage::SetPaletteTable
 		{
 			nCount = 0x100 ;
 		}
-		eslMoveMemory
-			( pImage->ptrPalette,
-				pPalette, nCount * sizeof(SGLPalette) ) ;
+		MovePaletteEntries( pImage->ptrPalette, pPalette, nCount ) ;
 	}
 	else
 	{
