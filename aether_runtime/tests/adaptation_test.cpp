@@ -519,6 +519,23 @@ void sceneBinary() {
         offsetof(S3DSceneComposer::BinaryBezierCurveData,points),
         sizeof(S3DSceneComposer::BinaryBezierCurvePoint),
         [](SSystem::SArray<uint8_t>& bytes,const wchar_t* text){return S3DItemBezierCurveSerializer::ParseData(bytes,text);});
+    using Point = S3DSceneComposer::BinaryBezierCurvePoint;
+    Point points[] = {
+        {S3DVector(1, 2, 3), {S3DVector(4, 5, 6), S3DVector(7, 8, 9)}, S3DVector(10, 11, 12), 13.5f, SGLPalette(0xFFEEDDCCu), 14},
+        {S3DVector(-1, -2, -3), {S3DVector(-4, -5, -6), S3DVector(-7, -8, -9)}, S3DVector(0.25, 0.5, 1), -13.5f, SGLPalette(0x11223344u), 15},
+    };
+    S3DItemBezierCurveSerializer original, decoded;
+    original.SetBezierCurve(2, points);
+    decoded.SetBezierCurveBase64(original.GetBezierCurveBase64());
+    require(decoded.GetPointCount() == 2, "Bezier round trip preserves point count");
+    for (size_t i = 0; i < 2; ++i) {
+        const auto& actual = *decoded.GetPointAt(i);
+        const auto& expected = points[i];
+        require(actual.vPoint == expected.vPoint && actual.vHandle[0] == expected.vHandle[0]
+            && actual.vHandle[1] == expected.vHandle[1] && actual.vZoom == expected.vZoom
+            && actual.degGimbal == expected.degGimbal && actual.argbColor.ui32 == expected.argbColor.ui32
+            && actual.nExData == expected.nExData, "Bezier round trip preserves every record field");
+    }
 }
 
 void legacyBshf(const std::filesystem::path& root) {
@@ -608,8 +625,30 @@ void legacyBshf(const std::filesystem::path& root) {
     require(archive.AscendFile() == errSuccess, "legacy BSHF cursor close");
 }
 
+void bulletTrackStorage() {
+    using namespace SakuraGL;
+    struct TestItem final : S3DBulletItemInterface {
+        void GetGlobalTransformation(S3DDMatrix& matrix, S3DDVector& position) const override {
+            matrix = S3DDMatrix(1, 1, 1);
+            position = S3DDVector(0, 0, 0);
+        }
+    } item;
+    for (size_t capacity : {1u, 4u}) {
+        item.SetMaxTrackCount(capacity);
+        auto* bullet = item.GenerateBullet(S3DDVector(0, 0, 0), S3DDVector(0, 0, 0));
+        require(bullet->vTrack.size() == capacity + 1, "Track storage includes the current point");
+        for (size_t step = 1; step <= capacity + 2; ++step)
+            item.MoveBullet(*bullet, S3DDVector(step, 0, 0));
+        require(bullet->nTrackCount == capacity, "Track preserves its configured capacity");
+        for (size_t index = 0; index <= capacity; ++index)
+            require(bullet->vTrack[index].x == capacity + 2 - index, "Track retains points in newest-first order");
+    }
+    item.DeleteAllBullets();
+}
+
 void serialization() {
     sceneBinary();
+    bulletTrackStorage();
     ECSEnvironment environment;require(!environment.InitEnvironment(),"serialization environment");
     StateImage image;image.AttachCSEnvironment(&environment);ECSContext context;
     require(!context.InitializeContext(&image),"serialization context");

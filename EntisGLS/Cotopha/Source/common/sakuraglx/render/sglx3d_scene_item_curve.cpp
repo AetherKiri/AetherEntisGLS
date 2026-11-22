@@ -3,6 +3,7 @@
 #include <sakuraglx/render/sglx3d_scene_item_curve.h>
 
 #include <memory>
+#include <new>
 
 using namespace SSystem ;
 using namespace SakuraGL ;
@@ -63,11 +64,14 @@ size_t S3DItemBezierCurveSerializer::GetBezierCurveData( S3DSceneComposer::Binar
 	bbcd.reserved[0] = 0 ;
 	bbcd.reserved[1] = 0 ;
 	//
-	eslCopyMemory
-		( &(bbcd.points[0]),
-			m_aBezierCurve.GetConstArray(),
-			m_aBezierCurve.GetLength()
-				* sizeof(S3DSceneComposer::BinaryBezierCurvePoint) ) ;
+	// This destination is the variable-length serialized record, not an array of live points.
+	if ( bbcd.count != 0 )
+	{
+		auto* bytes = reinterpret_cast<unsigned char*>(&bbcd)
+			+ offsetof(S3DSceneComposer::BinaryBezierCurveData, points) ;
+		eslCopyMemory( bytes, m_aBezierCurve.GetConstArray(),
+			bbcd.count * sizeof(S3DSceneComposer::BinaryBezierCurvePoint) ) ;
+	}
 	return	sizeof(S3DSceneComposer::BinaryBezierCurveData)
 			+ ((int) m_aBezierCurve.GetLength() - 1)
 				* sizeof(S3DSceneComposer::BinaryBezierCurvePoint) ;
@@ -163,10 +167,35 @@ void S3DItemBezierCurveSerializer::UpdateDataFromBase64( void )
 void S3DItemBezierCurveSerializer::UpdateBezierCurve
 	( size_t nCount, const S3DSceneComposer::BinaryBezierCurvePoint * pbbcp )
 {
+	using Point = S3DSceneComposer::BinaryBezierCurvePoint ;
+	using Vector = S3DVector ;
+	static_assert( sizeof(Vector) == 3 * sizeof(float32_t), "Curve vectors contain three floats" ) ;
 	m_aBezierCurve.SetLength( nCount ) ;
-	eslCopyMemory
-		( m_aBezierCurve.GetArray(), pbbcp,
-			nCount * sizeof(S3DSceneComposer::BinaryBezierCurvePoint) ) ;
+	auto* dst = m_aBezierCurve.GetArray() ;
+	const auto* bytes = reinterpret_cast<const unsigned char*>(pbbcp) ;
+	const auto readVector = []( const unsigned char* src )
+	{
+		float32_t coords[3] ;
+		eslCopyMemory( coords, src, sizeof(coords) ) ;
+		Vector value ;
+		value.x = coords[0] ;
+		value.y = coords[1] ;
+		value.z = coords[2] ;
+		return value ;
+	} ;
+	for ( size_t i = 0; i < nCount; ++i, bytes += sizeof(Point) )
+	{
+		float32_t angle ;
+		uint32_t color, extra ;
+		eslCopyMemory( &angle, bytes + offsetof(Point, degGimbal), sizeof(angle) ) ;
+		eslCopyMemory( &color, bytes + offsetof(Point, argbColor), sizeof(color) ) ;
+		eslCopyMemory( &extra, bytes + offsetof(Point, nExData), sizeof(extra) ) ;
+		::new (static_cast<void*>(dst + i)) Point{
+			readVector( bytes + offsetof(Point, vPoint) ),
+			{readVector( bytes + offsetof(Point, vHandle) ),
+			 readVector( bytes + offsetof(Point, vHandle) + sizeof(Vector) )},
+			readVector( bytes + offsetof(Point, vZoom) ), angle, SGLPalette(color), extra} ;
+	}
 	m_aBezierCurve.FinishArray() ;
 }
 
