@@ -1,10 +1,25 @@
-﻿
+﻿#include <algorithm>
+#include <functional>
 #include <sakuragl/sakuragl.h>
 #include <sakuragl/sgl3d_image.h>
 #include <sakuragl/sgl3d/sgl_render_buffered_context.h>
 
 using namespace SSystem ;
 using namespace SakuraGL ;
+
+namespace
+{
+	// The API also accepts views into an existing mesh buffer.
+	void CopyMeshCoordinates( S2DVector* dst, const S2DVector* src, size_t count )
+	{
+		if ( count == 0 || dst == src )
+			return ;
+		if ( std::less<const S2DVector*>{}( dst, src ) )
+			std::copy_n( src, count, dst ) ;
+		else
+			std::copy_backward( src, src + count, dst + count ) ;
+	}
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -525,9 +540,7 @@ SGLError S3DRenderBufferedContext::DrawImage
 				m_bufUVMap.SetLength( countVertex ) ;
 			}
 			pvBufUVMap = m_bufUVMap.GetArray() ;
-			eslMoveMemory
-				( pvBufUVMap, ppPaint.pVertices,
-					countVertex * sizeof(S2DVector) ) ;
+			CopyMeshCoordinates( pvBufUVMap, ppPaint.pVertices, countVertex ) ;
 			m_bufUVMap.FinishArray() ;
 			pvUVMap = pvBufUVMap ;
 		}
