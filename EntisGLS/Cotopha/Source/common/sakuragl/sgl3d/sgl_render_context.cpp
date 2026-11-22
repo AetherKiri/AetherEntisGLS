@@ -1557,7 +1557,9 @@ SGLError S3DShadowMapInfo::SetShadowMappingInfo
 	{
 		return	sglErrInvalidParam ;
 	}
-	eslFillMemory( this, 0, sizeof(S3DShadowMapInfo) ) ;
+	const S3DVector4 zero(0, 0, 0, 0) ;
+	*this = S3DShadowMapInfo{ zero, zero, zero, zero, zero,
+		0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, {} } ;
 	//
 	S3DVector	vScreen ;
 	float32_t	zCameraOffset = 0.0f ;
