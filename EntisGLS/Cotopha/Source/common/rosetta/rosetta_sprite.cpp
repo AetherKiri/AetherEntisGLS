@@ -1,4 +1,6 @@
 ﻿
+#include <new>
+#include <limits>
 #include <rosetta/rosetta.h>
 #include <sakuragl/sgl2d_image.h>
 #include <sakuragl/sgl2d/sgl_image_filter.h>
@@ -1765,12 +1767,23 @@ void RSSpriteClass::ParameterClass::ParameterFromObject
 		pPtrVertices = ESLTypeCast<RSStructuredPointer>( pObjVertices.Ptr() ) ;
 	if ( pPtrVertices != NULL )
 	{
-		param.countVertex = pPtrVertices->GetElementCount() ;
-		param.pVertices = vertics.GetArray( param.countVertex ) ;
-		eslMoveMemory
-			( vertics.GetArray(),
-				pPtrVertices->GetPointer(),
-				param.countVertex * sizeof(S2DVector) ) ;
+		const size_t count = pPtrVertices->GetElementCount() ;
+		constexpr size_t stride = 2 * sizeof(float32_t) ;
+		if ( count == 0 || count > std::numeric_limits<size_t>::max() / stride )
+			return ;
+		const uint8_t* src = pPtrVertices->GetPointer( count * stride ) ;
+		if ( src == nullptr )
+			return ;
+		S2DVector* dst = vertics.GetArray( count ) ;
+		for ( size_t i = 0; i < count; ++i, src += stride )
+		{
+			float32_t x, y ;
+			eslCopyMemory( &x, src, sizeof(x) ) ;
+			eslCopyMemory( &y, src + sizeof(x), sizeof(y) ) ;
+			::new (static_cast<void*>(dst + i)) S2DVector( x, y ) ;
+		}
+		param.countVertex = count ;
+		param.pVertices = dst ;
 		vertics.FinishArray() ;
 	}
 }
