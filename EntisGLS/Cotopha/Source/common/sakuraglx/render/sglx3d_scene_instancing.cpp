@@ -2,6 +2,8 @@
 #include <sakuraglx/sakuraglx.h>
 #include <sakuraglx/render/sglx3d_scene_item.h>
 
+#include <memory>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
 using namespace Rosetta ;
@@ -1355,10 +1357,10 @@ void S3DItemInstancingSerializer::DoDynamicProcess
 	//
 	S4DMatrix *	pSrcTempMatrics = m_aDynamicMatrixs2.GetArray( nCount ) ;
 	S3DColor *	pSrcTempColors = m_aDynamicColors2.GetArray( nCount ) ;
-	eslCopyMemory
-		( pSrcTempMatrics, pDstMatrics, nCount * sizeof(S4DMatrix) ) ;
-	eslCopyMemory
-		( pSrcTempColors, pDstColors, nCount * sizeof(S3DColor) ) ;
+	std::uninitialized_copy_n
+		( pDstMatrics, nCount, pSrcTempMatrics ) ;
+	std::uninitialized_copy_n
+		( pDstColors, nCount, pSrcTempColors ) ;
 	//
 	S4DMatrix	mat4Temp ;
 	S3DColor	clrTemp ;

@@ -2,6 +2,8 @@
 #include <sakuraglx/sakuraglx.h>
 #include <sakuraglx/render/sglx3d_scene_item_curve.h>
 
+#include <memory>
+
 using namespace SSystem ;
 using namespace SakuraGL ;
 
@@ -1707,13 +1709,10 @@ void S3DMeshBezierPathBuilder::BuildMesh
 		size_t	nUVMapLength =
 					(size_t) esl_min( (int) pmo->m_bufUVMap.GetLength(),
 										(int) pmo->m_countVertex ) ; ;
-		eslCopyMemory
-			( prmbuf.pvUVMap,
-				pmo->m_bufUVMap.GetConstArray(),
-				nUVMapLength * sizeof(S2DVector) ) ;
-		eslFillMemory
-			( prmbuf.pvUVMap + nUVMapLength, 0,
-				(pmo->m_countVertex - nUVMapLength) * sizeof(S2DVector) ) ;
+		std::uninitialized_copy_n
+			( pmo->m_bufUVMap.GetConstArray(), nUVMapLength, prmbuf.pvUVMap ) ;
+		std::uninitialized_fill_n
+			( prmbuf.pvUVMap + nUVMapLength, (pmo->m_countVertex - nUVMapLength), S2DVector( 0, 0 ) ) ;
 		//
 		// 頂点色複製
 		//
