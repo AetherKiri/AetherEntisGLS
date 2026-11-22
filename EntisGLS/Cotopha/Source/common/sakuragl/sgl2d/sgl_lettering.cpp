@@ -329,8 +329,7 @@ size_t SGLLetterer::WriteLetter
 					}
 					else
 					{
-						Character	chrHyphen ;
-						eslFillMemory( &chrHyphen, 0, sizeof(Character) ) ;
+						Character	chrHyphen { NULL, SGLPoint(0,0), SGLPoint(0,0), SGLSize(0,0), 0 } ;
 						//
 						RasterizeCharacter
 							( font, chrHyphen, bufGray, L'-' ) ;
@@ -1000,9 +999,8 @@ SGLError SGLLetterer::RasterizeCharacter
 		SGLPoint& ptOffset, int32_t& nCharWidth,
 		SGLFont& font, const SGLLetterer::Decoration& deco, wchar_t wch )
 {
-	Character		chChar ;
+	Character		chChar { NULL, SGLPoint(0,0), SGLPoint(0,0), SGLSize(0,0), 0 } ;
 	SArray<uint8_t>	bufGray ;
-	eslFillMemory( &chChar, 0, sizeof(Character) ) ;
 	//
 	RasterizeCharacter( font, chChar, bufGray, wch ) ;
 	DoDecoration( deco, chChar ) ;
