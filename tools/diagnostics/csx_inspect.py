@@ -124,11 +124,14 @@ class CSX:
             tag = r.take(8).decode('ascii').strip()
             size = r.unpack('Q')[0]
             self.records[tag] = r.take(size)
-        h = Reader(self.records['header'])
-        self.header = dict(zip(['version', 'int_base', 'container_flags', 'reserved',
-                               'stack_size', 'heap_size', 'entry', 'static_init', 'resume'],
-                              h.unpack('9I')))
-        h.finish()
+        self.headerless = 'header' not in self.records
+        self.header = dict(version=0, int_base=32, container_flags=0, reserved=0,
+                           stack_size=4096, heap_size=4096, entry=0xffffffff,
+                           static_init=0xffffffff, resume=0xffffffff)
+        if not self.headerless:
+            h = Reader(self.records['header'])
+            self.header = dict(zip(self.header, h.unpack('9I')))
+            h.finish()
         self.image = self.records['image']
         r = Reader(self.records['function'])
         self.prologues, self.epilogues = r.array(), r.array()
@@ -143,13 +146,16 @@ class CSX:
             r.finish()
         self.function_names = {f['address']: f['name'] for f in self.functions}
         self.function_addresses = sorted(self.function_names)
+        if self.headerless:
+            self.header['entry'] = next((f['address'] for f in self.functions
+                                         if f['name'] == 'main'), 0xffffffff)
         self.strings, self.string_references = [], []
         r = Reader(self.records['conststr'])
         for _ in range(r.u32()):
             self.strings.append(r.string())
             self.string_references.append(r.array())
         r.finish()
-        r = Reader(self.records['classinf'])
+        r = Reader(self.records.get('classinf', b'\0\0\0\0'))
         self.class_names = [r.string() for _ in range(r.u32())]
         self.classes = [read_class(r) for _ in self.class_names]
         r.finish()

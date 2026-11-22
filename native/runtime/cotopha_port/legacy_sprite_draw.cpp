@@ -918,20 +918,25 @@ ESLError HandleLegacySpriteDraw(ECSContext &context,ECSSprite &object,const wcha
         action->alphaFilter=state.alphaFilter.GetReference();action->blendEffect=state.blendEffect;
         action->durations.clear();
         auto *durations=ESLTypeCast<ECSArray>(context.GetArgumentObjectAs(args,1,L"Array"));
-        uint64_t total=0;
+        uint32_t total=0;
         if(durations) {
             for(int i=0;i<durations->m_varArray.GetSize();++i) {
                 auto *value=ESLTypeCast<ECSInteger>(ECSObject::GetEntity(durations->m_varArray.GetAt(i)));
-                if(!value||value->GetValue()<0||uint64_t(value->GetValue())>UINT32_MAX) return eslErrInvalidParam;
+                if(!value||value->GetValue()<INT32_MIN||value->GetValue()>INT64(UINT32_MAX)) return eslErrInvalidParam;
                 action->durations.push_back(uint32_t(value->GetValue()));total+=uint32_t(value->GetValue());
             }
-        } else { int duration;if((error=integer(duration,1))) return error;if(duration<0)return eslErrInvalidParam;total=duration; }
-        if(total>UINT32_MAX/2) return eslErrInvalidParam;
+        } else { int duration;if((error=integer(duration,1))) return error;total=uint32_t(duration); }
+        // GLS3 accumulates 32-bit durations and tests the total as signed.
+        // A negative total (notably -1 for a cut) leaves the initial pose but
+        // does not run an action; zero immediately applies the final pose.
+        // Natsu.exe: Call_BeginActivation 0x491f70, BeginActivation 0x484bf0.
+        const bool running=total>0&&total<=INT32_MAX;
         sprite.CancelAction();
+        state.activeAction=nullptr;
         action->m_msecPast=action->m_msecStart=0;action->m_flagPaused=false;
-        action->SetActionType(type);action->SetDuration(uint32_t(total));
+        action->SetActionType(type);action->SetDuration(total);
         auto param=sprite.GetParameter();action->EffectParameter(param,total?0:1);sprite.SetParameter(param);
-        if(total&&state.hasAction) {state.activeAction=action.get();sprite.AddAction(action.release());}
+        if(running&&state.hasAction) {state.activeAction=action.get();sprite.AddAction(action.release());}
         return push();
     }
     if(named(L"FlushActivation")||named(L"CancelActivation")||named(L"IsActivation")) {

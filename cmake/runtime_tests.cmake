@@ -6,6 +6,9 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
 endif()
 
 if(NOT ANDROID AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    add_executable(acr_translation_test EXCLUDE_FROM_ALL tests/unit/launcher/acr_translation_test.cpp
+        native/launcher/acr_translation.cpp)
+    target_include_directories(acr_translation_test PRIVATE "${STUDYSTEADY_ROOT}/native")
     add_executable(motion_atlas_projection_test EXCLUDE_FROM_ALL tests/unit/launcher/atlas_projection_test.cpp)
     target_include_directories(motion_atlas_projection_test PRIVATE "${STUDYSTEADY_ROOT}/native")
     add_executable(mobile_orientation_test EXCLUDE_FROM_ALL tests/unit/platform/mobile_orientation_test.cpp
@@ -32,6 +35,9 @@ if(NOT ANDROID AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     add_executable(make_csx_fixture EXCLUDE_FROM_ALL tests/fixtures/make_csx_fixture.cpp "${LEGACY_HEAP_SDK}"
         native/compatibility/games/compatibility_profiles.cpp native/platform/sdl/game_font_aliases.cpp native/platform/sdl/opentype_font.cpp)
     target_link_libraries(make_csx_fixture PRIVATE legacy_objects legacy_foundation gls4_sdl motion_apk_runtime freetype)
+    add_executable(legacy_headerless_test EXCLUDE_FROM_ALL tests/integration/cotopha/legacy_headerless_test.cpp "${LEGACY_HEAP_SDK}"
+        native/compatibility/games/compatibility_profiles.cpp native/platform/sdl/game_font_aliases.cpp native/platform/sdl/opentype_font.cpp)
+    target_link_libraries(legacy_headerless_test PRIVATE legacy_objects legacy_foundation gls4_sdl motion_apk_runtime freetype)
     add_executable(legacy_speech_test EXCLUDE_FROM_ALL tests/integration/cotopha/legacy_speech_test.cpp "${LEGACY_HEAP_SDK}"
         native/compatibility/games/compatibility_profiles.cpp native/platform/sdl/game_font_aliases.cpp native/platform/sdl/opentype_font.cpp)
     target_link_libraries(legacy_speech_test PRIVATE legacy_objects legacy_foundation gls4_sdl motion_apk_runtime freetype)

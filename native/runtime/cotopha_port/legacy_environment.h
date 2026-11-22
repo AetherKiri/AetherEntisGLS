@@ -2,6 +2,7 @@
 #include "runtime/cotopha_port/legacy_file.h"
 #include <sakuraglx/sakuraglx.h>
 #include <memory>
+#include "launcher/acr_translation.h"
 
 class ECSContext;
 struct ECS_PLUGIN_ENTRY_TABLE;
@@ -23,6 +24,8 @@ public:
     EObjArray<EPlugin> m_lstModule;
 
     SSystem::SError InitEnvironment() override;
+    void SetTranslations(std::shared_ptr<const entis::launcher::AcrTranslation> translations) { translations_=std::move(translations); }
+    bool TranslateText(ECSWideString& text, bool formattedMessage = false) const;
     void SetResourceOverrides(std::shared_ptr<SSystem::SFileOpener> opener) { overrides_ = std::move(opener); }
     SSystem::SFileInterface *NewOpenFile(const wchar_t *path, long flags) override;
     SSystem::SFileInterface *NewOpenFile(const wchar_t *path, long flags) const override;
@@ -38,5 +41,6 @@ public:
                            const wchar_t *id = nullptr);
     ESLError EnableFilePath(const wchar_t *id, bool enable);
 private:
+    std::shared_ptr<const entis::launcher::AcrTranslation> translations_;
     std::shared_ptr<SSystem::SFileOpener> overrides_;
 };

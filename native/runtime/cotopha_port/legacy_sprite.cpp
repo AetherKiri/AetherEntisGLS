@@ -330,7 +330,10 @@ ESLError ECSSprite::CallFunction(ECSContext &context, int index, ECSObjArray<ECS
             }
         } else {
             if ((error = context.GetArgumentAsStr(value, args, 2, nullptr))) return error;
-            if (named(L"SetSpriteText")) formed->SetSpriteText(id, value);
+            if (named(L"SetSpriteText")) {
+                if (auto* environment=context.GetEnvironment()) environment->TranslateText(value);
+                formed->SetSpriteText(id, value);
+            }
             else if (named(L"SetSpriteImage")) formed->SetSpriteImage(id, value);
             else formed->SetSpriteTextFont(id, value);
             if(Item(id))RecordLegacyItemString(id,named(L"SetSpriteText")?L"text":named(L"SetSpriteImage")?L"image":L"font",value);
