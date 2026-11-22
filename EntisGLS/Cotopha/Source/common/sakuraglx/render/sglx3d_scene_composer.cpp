@@ -6493,10 +6493,10 @@ void S3DSceneComposer::VectorSequencer::ChangeInterpolateMethod
 			m_arrValues.FinishArray() ;
 			//
 			m_arrValues.SetLength( bzCurves.GetLength() ) ;
-			eslCopyMemory
-				( m_arrValues.GetArray(),
-					bzCurves.GetConstArray(),
-					bzCurves.GetLength() * sizeof(S3DDVector) ) ;
+			for ( size_t i = 0; i < bzCurves.GetLength(); ++i )
+			{
+				m_arrValues.At( i ) = bzCurves.GetConstArray()[i] ;
+			}
 			m_arrValues.FinishArray() ;
 			//
 			if ( nKeyFrames > 0 )
