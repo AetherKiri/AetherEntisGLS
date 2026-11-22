@@ -26,6 +26,7 @@
 #include <cstdio>
 #include <cstring>
 #include <sakuraglx/sakuraglx.h>
+#include <sakuragl/sgl2d/sgl_image_conversion.h>
 #include <sakuraglx/render/sglx3d_scene_item.h>
 #include <sakuraglx/render/sglx3d_scene_instancing.h>
 #include <sakuraglx/render/sglx3d_scene_item_curve.h>
@@ -179,7 +180,29 @@ void messageGlyphs() {
     require(pixel.argb.Red==255&&pixel.argb.Green==0&&pixel.argb.Blue==0&&pixel.argb.Alpha==128,"tint retains alpha and uses current text color");
     require(!message.OutputMessage(L"after",consumed)&&consumed==5,"dialogue continues after an inline glyph");
 }
+void argb32Overlap()
+{
+    using namespace SakuraGL;
+    static_assert(sizeof(SGLPalette) == sizeof(uint32_t));
+    for (size_t dstOffset : {0u, 4u, 8u}) {
+        for (size_t srcOffset = 0; srcOffset <= 12; ++srcOffset) {
+            SGLPalette pixels[5] = {0x01234567u, 0x89abcdefu, 0xfedcba98u,
+                                    0x76543210u, 0x13579bdfu};
+            auto *bytes = reinterpret_cast<unsigned char *>(pixels);
+            unsigned char expected[sizeof(pixels)];
+            std::memcpy(expected, bytes, sizeof(expected));
+            std::memmove(expected + dstOffset, expected + srcOffset, 2 * sizeof(SGLPalette));
+            sglDecodePixelCompositionARGB32(pixels + dstOffset / sizeof(SGLPalette),
+                                            bytes + srcOffset, 2);
+            require(std::memcmp(pixels, expected, sizeof(expected)) == 0,
+                    "ARGB32 conversion preserves overlapping unaligned pixel reads");
+        }
+    }
+    sglDecodePixelCompositionARGB32(nullptr, nullptr, 0);
+}
+
 void imageCache() {
+    argb32Overlap();
     using namespace SakuraGL;
     ECSContext context;
     for(uint32_t background:{0xff112233u,0u}) {
