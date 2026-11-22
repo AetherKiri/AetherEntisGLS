@@ -124,44 +124,24 @@ namespace	SakuraGL
 		class	UniformElement
 		{
 		public:
-			struct	Value	: public S4DDMatrix
+			struct	Value
 			{
-				Value( void ) : S4DDMatrix( 0, 0, 0, 0 )
-				{
-				}
-				const Value& operator = ( const Value& src )
-				{
-					eslCopyMemory( this, &src, sizeof(Value) ) ;
-					return	*this ;
-				}
-				int32_t& Int32( void )
-				{
-					return	*((int32_t*)this) ;
-				}
-				double& Float64( void )
-				{
-					return	*((double*)this) ;
-				}
-				S2DDVector& Vector2D( void )
-				{
-					return	*((S2DDVector*)this) ;
-				}
-				S3DDVector& Vector3D( void )
-				{
-					return	*((S3DDVector*)this) ;
-				}
-				S4DDVector& Vector4D( void )
-				{
-					return	*((S4DDVector*)this) ;
-				}
-				S3DDMatrix& Matrix3D( void )
-				{
-					return	*((S3DDMatrix*)this) ;
-				}
-				S4DDMatrix& Matrix4D( void )
-				{
-					return	*((S4DDMatrix*)this) ;
-				}
+			private:
+				int32_t m_int = 0 ;
+				double m_float = 0.0 ;
+				S2DDVector m_vector2{0, 0} ;
+				S3DDVector m_vector3{0, 0, 0} ;
+				S4DDVector m_vector4{0, 0, 0, 0} ;
+				S3DDMatrix m_matrix3{0, 0, 0} ;
+				S4DDMatrix m_matrix4{0, 0, 0, 0} ;
+			public:
+				int32_t& Int32( void ) { return m_int ; }
+				double& Float64( void ) { return m_float ; }
+				S2DDVector& Vector2D( void ) { return m_vector2 ; }
+				S3DDVector& Vector3D( void ) { return m_vector3 ; }
+				S4DDVector& Vector4D( void ) { return m_vector4 ; }
+				S3DDMatrix& Matrix3D( void ) { return m_matrix3 ; }
+				S4DDMatrix& Matrix4D( void ) { return m_matrix4 ; }
 			} ;
 			SSystem::SString	m_idParam ;
 			SSystem::SString	m_idDispName ;
