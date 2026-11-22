@@ -26,8 +26,11 @@ SGLSpriteText::TextStyle::TextStyle( void )
 // 構築関数（複製）
 //////////////////////////////////////////////////////////////////////////////
 SGLSpriteText::TextStyle::TextStyle( const SGLSpriteText::TextStyle& style )
+	: boxAlign( style.boxAlign ),
+	  font( style.font ),
+	  context( style.context ),
+	  decoration( style.decoration )
 {
-	eslCopyMemory( this, &style, sizeof(TextStyle) ) ;
 }
 
 // 代入
@@ -36,7 +39,10 @@ const SGLSpriteText::TextStyle&
 	SGLSpriteText::TextStyle::operator =
 		( const SGLSpriteText::TextStyle& style )
 {
-	eslCopyMemory( this, &style, sizeof(TextStyle) ) ;
+	boxAlign = style.boxAlign ;
+	font = style.font ;
+	context = style.context ;
+	decoration = style.decoration ;
 	return	*this ;
 }
 
