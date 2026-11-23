@@ -1,5 +1,6 @@
 #include "compatibility/sdk/legacy/gls.h"
 #include "runtime/cotopha_port/legacy_resource_manager.h"
+#include "runtime/cotopha_port/legacy_skin_manager.h"
 #include "runtime/cotopha_port/legacy_serialization.h"
 #include "platform/log.h"
 #include <chrono>
@@ -51,7 +52,7 @@ ESLError ECSResourceManager::ReadSkinFile(ESLFileObject& file) {
     auto* copy = file.Duplicate();
     if (!copy) return eslErrGeneral;
     SESLFileInterface stream(copy, true);
-    auto skin = std::make_shared<SakuraGL::SGLSkinManager>();
+    auto skin = std::make_shared<LegacySkinManager>();
     // The legacy manager eagerly exposed every loaded resource as a variable.
     if (skin->ReadSkinFile(stream, true)) return eslErrGeneral;
     const auto& resources = skin->GetResourceArray();

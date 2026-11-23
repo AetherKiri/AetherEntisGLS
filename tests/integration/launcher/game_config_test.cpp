@@ -253,6 +253,15 @@ int main(int argc, char** argv) {
         rejectXml("<script src='main.csx'><file path='C:\\outside'/></script>","game-relative");
         rejectXml("<script src='main.csx'><file path='$(APPDATA)'/></script>","game-relative");
         rejectXml("<script src='main.csx'><module file='plugin.dll'/></script>","Windows DLL modules");
+        const auto systemModules = NormalizeGameConfig(game,
+            "<script src='main.csx'><module file='KERNEL32.DLL'/><module file='user32.dll'/>"
+            "<module file='gdi32.dll'/><module file='advapi32.dll'/><module file='shell32.dll'/></script>", "system-modules");
+        Require(systemModules.normalizedXml.find("module") == std::string::npos &&
+                systemModules.gameId == unchangedIdentity.gameId,
+                "optional system DLL declarations use portable builtins without changing identity");
+        rejectXml("<script src='main.csx'><module file='../user32.dll'/></script>","Windows DLL modules");
+        rejectXml("<script src='main.csx'><module file='user32.dll' entry='other'/></script>","Unsupported attribute");
+        rejectXml("<script src='main.csx'><module file='user32.dll'><file path='.'/></module></script>","Unsupported nested");
         rejectXml("<script src='main.csx'><update cmd='arbitrary.exe'/></script>","Unsupported launch configuration element");
         rejectXml("<script src='main.csx'><archive path='x.noa' download='https://invalid'/></script>","Unsupported attribute");
         rejectXml("<script src='main.csx' dynamic_env='other.xml'/>","Unsupported attribute");

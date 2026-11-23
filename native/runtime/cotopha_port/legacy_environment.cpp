@@ -43,6 +43,22 @@ public:
 };
 }
 
+bool ECSEnvironment::TranslateText(ECSWideString& text, bool formattedMessage) const {
+    if (translations_) {
+        if (formattedMessage) {
+            std::wstring message(static_cast<const wchar_t*>(text));
+            if (!translations_->TranslateMessage(message)) return false;
+            text = message.c_str();
+            return true;
+        }
+        if (const auto* replacement=translations_->Find(text)) {
+            text=replacement->c_str();
+            return true;
+        }
+    }
+    return false;
+}
+
 SSystem::SFileInterface *ECSEnvironment::NewOpenFile(const wchar_t *path, long flags) {
     return static_cast<const ECSEnvironment &>(*this).NewOpenFile(path, flags);
 }

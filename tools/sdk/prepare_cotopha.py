@@ -29,6 +29,7 @@ from patch_legacy_primary_context import patch_source as patch_primary_context
 from patch_legacy_reference_commit import patch_source as patch_reference_commit
 from patch_legacy_context_failure import patch_source as patch_context_failure
 from patch_legacy_switch_defaults import patch_source as patch_switch_defaults
+from patch_legacy_headerless import patch_source as patch_headerless
 
 p = argparse.ArgumentParser()
 p.add_argument("--legacy", type=Path, required=True)
@@ -261,4 +262,5 @@ for component in ("ESL", "GLS3", "erisalib", "EGL"):
         text = patch_reference_commit(str(source.relative_to(a.legacy)), text)
         text = patch_context_failure(str(source.relative_to(a.legacy)), text)
         text = patch_switch_defaults(str(source.relative_to(a.legacy)), text)
+        text = patch_headerless(str(source.relative_to(a.legacy)), text)
         write_if_changed(target, text)

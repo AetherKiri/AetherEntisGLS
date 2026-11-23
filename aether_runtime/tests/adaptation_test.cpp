@@ -766,7 +766,8 @@ void gameHooks(const std::filesystem::path& root) {
     hooks->Load(root, "entisgls");
     entis::launcher::GameLaunchConfig config;
     config.openTypeFonts.push_back({"original.ttf", "Default"});
-    aether::entisgls::ApplyGameHooks(root, root / "cache", hooks, config);
+    const auto cacheRoot = root / "cache";
+    aether::entisgls::ApplyGameHooks(root, cacheRoot, hooks, config);
     require(config.fontOverride == "storage://game/font.ttf", "selected physical font reaches the session configuration");
     {
         using namespace SakuraGL;
@@ -792,7 +793,7 @@ void gameHooks(const std::filesystem::path& root) {
         study::platform::sdl::SetFontOverride({});
         require(font.SetStyle(style) != sglErrSuccess, "clearing font selection restores native lookup");
     }
-    const auto cache = hooks->CacheDirectory(root / "cache");
+    const auto cache = hooks->CacheDirectory(cacheRoot);
     environment.SetResourceOverrides(config.resourceOverrides);
     require(read(L"message.bin") == "兜底中文" && read(L"storage://game/message.bin") == "兜底中文", "Lua wins over archive through logical and game URLs");
     require(read(L"keep.bin") == "original", "unregistered archive resource retained");
@@ -816,14 +817,28 @@ void gameHooks(const std::filesystem::path& root) {
     require(environment.QueryFileState(L"slot.dat", state) == errSuccess && state.nFileSize == 8, "save metadata matches the native bytes");
     require(!config.resourceOverrides->NewOpenFile(L"message.bin", SFile::modeCreate), "override opener rejects writes");
     require(!config.resourceOverrides->IsExisting(L"savedata/slot.dat"), "explicit saves excluded from overrides");
-    environment.SetResourceOverrides(nullptr); config.resourceOverrides.reset(); hooks.reset();
-    require(!fs::exists(cache), "resource cache removed at session teardown");
+    environment.SetResourceOverrides(nullptr);
+    config.resourceOverrides.reset();
+    hooks.reset();
+    require(fs::is_regular_file(cache / "message.bin"), "cached translation survives session teardown");
+    require(read(L"message.bin") == "原生中文", "detaching overrides restores the native translation");
+
+    hooks = std::make_shared<aether::hooks::GameHooks>();
+    hooks->Load(root, "entisgls");
+    aether::entisgls::ApplyGameHooks(root, cacheRoot, hooks, config);
+    require(hooks->CacheDirectory(cacheRoot) == cache, "reopening the patch reuses its cache directory");
+    environment.SetResourceOverrides(config.resourceOverrides);
+    require(read(L"message.bin") == "兜底中文", "reopened session reads the cached translation");
+
     fs::remove(root / "aether.lua");
+    hooks->Load(root, "entisgls");
+    aether::entisgls::ApplyGameHooks(root, cacheRoot, hooks, config);
+    environment.SetResourceOverrides(config.resourceOverrides);
     require(read(L"message.bin") == "原生中文", "native translation restored after hook removal");
     std::ofstream(root / "aether.lua") << "aether.set_encoding('GBK')";
     hooks = std::make_shared<aether::hooks::GameHooks>(); hooks->Load(root, "entisgls");
     bool rejected = false;
-    try { aether::entisgls::ApplyGameHooks(root, root / "cache", hooks, config); }
+    try { aether::entisgls::ApplyGameHooks(root, cacheRoot, hooks, config); }
     catch (const std::runtime_error &e) { rejected = std::string(e.what()).find("aether.lua") != std::string::npos; }
     require(rejected, "unsupported CSX encoding is reported, not silently ignored");
     fs::remove(root / "aether.lua");

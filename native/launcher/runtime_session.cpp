@@ -134,6 +134,19 @@ int RunLegacyGame(const wchar_t *arguments, const entis::launcher::GameLaunchCon
     SSystem::SMemoryReferenceFile config;
     config.AttachMemory(const_cast<char*>(launch->normalizedXml.data()), launch->normalizedXml.size());
     if (environment.LoadEnvironment(config)) return Fail(1, "Could not load game environment: " + launch->configSource);
+    // The patch table is paired with this entry script. Do not select bonus
+    // variants or write a translated CSX: bytecode addresses must stay stable
+    // for the original game and saved contexts.
+    const auto translationPath=launch->gameDirectory /
+        std::filesystem::u8path(std::filesystem::u8path(launch->entryScript).stem().u8string()+"16.acr");
+    if (entis::io::Stat(translationPath).kind==entis::io::FileInfo::Kind::File) {
+        try {
+            auto translations=std::make_shared<entis::launcher::AcrTranslation>(entis::io::ReadFile(translationPath,64*1024*1024));
+            study::platform::LogPrint(study::platform::LogPriority::Info,"EntisGLS",
+                "Loaded ACR translations: %zu entries",translations->Size());
+            environment.SetTranslations(std::move(translations));
+        } catch(const std::exception& error) { return Fail(40,std::string("Cannot load ACR translations: ")+error.what()); }
+    }
     using namespace study::platform::sdl;
     if (!launch->fallbackFont.empty()) {
         const auto registered = RegisterOpenTypeFont(Wide(launch->fallbackFont), {},
@@ -306,12 +319,13 @@ int RunLegacyGame(const wchar_t *arguments, const entis::launcher::GameLaunchCon
     study::platform::LogWrite(study::platform::LogPriority::Info, "StudySteady", "Legacy globals and object/naked prologues complete; entering original main");
     {
         ECSObjArray<ECSObject> args;
-        args.Add(new ECSString(arguments ? arguments : L""));
+        if (!image.IsHeaderlessImage()) args.Add(new ECSString(arguments ? arguments : L""));
         if (image.m_exiHeader.fnStaticInitialize != UINT32_MAX) {
             ECSObjArray<ECSObject> noArguments;
             error = context.CallFunction(image.m_exiHeader.fnStaticInitialize, noArguments);
         }
-        if (!error) error = context.CallFunction(image.m_exiHeader.fnEntryPoint, args);
+        if (!error && image.m_exiHeader.fnEntryPoint != UINT32_MAX)
+            error = context.CallFunction(image.m_exiHeader.fnEntryPoint, args);
         if (error) LogError("main", error, &context);
         else study::platform::LogPrint(study::platform::LogPriority::Info, "StudySteady", "Legacy main returned without uncaught error (ip=0x%08x)", context.m_ip);
     }

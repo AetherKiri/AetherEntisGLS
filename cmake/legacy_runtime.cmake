@@ -50,6 +50,7 @@ if(LEGACY_COMPILE_OBJECTS)
     add_library(legacy_objects STATIC ${LEGACY_OBJECT_SOURCES}
         "${LEGACY_PORT_ROOT}/runtime_support.cpp"
         "${LEGACY_RUNTIME_ROOT}/legacy_environment.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/../native/launcher/acr_translation.cpp"
         "${LEGACY_RUNTIME_ROOT}/legacy_thread.cpp"
         "${LEGACY_RUNTIME_ROOT}/legacy_script_file.cpp"
         "${LEGACY_RUNTIME_ROOT}/legacy_atomic_path.cpp"

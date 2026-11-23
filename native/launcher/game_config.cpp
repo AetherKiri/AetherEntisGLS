@@ -581,7 +581,20 @@ GameLaunchConfig NormalizeGameConfig(const fs::path& gameDir, const std::string&
         if (!node || node->GetType() == XmlNode::typeComment) continue;
         const auto tag = Utf8(node->GetTag());
         if (tag == "save_dir" || tag == "icon") continue;
-        if (tag == "module") throw ConfigError("Windows DLL modules are unsupported; this game needs a native compatibility module");
+        if (tag == "module") {
+            NoChildren(*node);
+            XmlNode checked;
+            CopyAttributes(*node, checked, {"file"}, result);
+            const auto module = Lower(Attr(*node, "file"));
+            // Older launchers preload these libraries as optional sources for
+            // script API lookup. Cotopha's portable builtins do not need them.
+            // Do not load host libraries or silently accept game plug-ins;
+            // an actual unsupported native function still fails at dispatch.
+            if (module != "kernel32.dll" && module != "user32.dll" &&
+                module != "gdi32.dll" && module != "advapi32.dll" && module != "shell32.dll")
+                throw ConfigError("Windows DLL modules are unsupported; this game needs a native compatibility module: " + module);
+            continue;
+        }
         if (tag != "archive" && tag != "file" && tag != "fonts" && tag != "display" && tag != "vm" && tag != "sound" && tag != "opengl")
             throw ConfigError("Unsupported launch configuration element: <" + tag + ">");
         auto owned = std::make_unique<XmlNode>();

@@ -596,9 +596,13 @@ ESLError ECSMessageSprite::CallFunction(ECSContext &context,int index,ECSObjArra
         if((error=count(2,2))) return error;
         ECSWideString text;
         if((error=context.GetArgumentAsStr(text,args,1,L""))) return error;
+        // ACR entries describe complete displayed messages, which scripts can
+        // assemble from several literals. Keep VM strings and save data intact.
+        const size_t sourceLength=text.GetLength();
+        const bool translated=context.GetEnvironment() && context.GetEnvironment()->TranslateText(text,true);
         size_t consumed;
         if((error=OutputMessage(text,consumed))) return error;
-        return result(consumed);
+        return result(translated && consumed==text.GetLength() ? sourceLength : consumed);
     }
     if(named(L"FlushMessage") || named(L"ClearMessage") || named(L"IsMessagePending") || named(L"GetCharacterCount")) {
         if((error=count(1,1))) return error;
